@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: vybe-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vybe}
+    username: ${DB_USER:vybe}
+    password: ${DB_PASSWORD:vybe}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # quem cria/altera tabelas é o Flyway
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 30MB
+      max-request-size: 36MB
+
+server:
+  port: ${PORT:8080}
+
+vybe:
+  # Endereços do front-end que podem chamar a API (separe vários com vírgula)
+  cors-origens: ${CORS_ORIGENS:http://localhost:5173}
+  jwt:
+    # Em produção, defina JWT_SEGREDO com pelo menos 32 caracteres aleatórios.
+    segredo: ${JWT_SEGREDO:segredo-de-desenvolvimento-troque-em-producao-123}
+    validade-horas: 168
+  armazenamento:
+    # Pasta onde ficam os áudios e as capas enviados
+    pasta: ${ARMAZENAMENTO_PASTA:./dados}
+  streaming:
+    # Tamanho máximo de cada pedaço de áudio enviado ao navegador (1 MB)
+    bloco-bytes: 1048576
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

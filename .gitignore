@@ -1,0 +1,27 @@
+# Java / Maven
+backend/target/
+*.class
+*.log
+
+# Áudios e capas enviados localmente (não vão para o GitHub)
+backend/dados/
+dados/
+
+# Node
+node_modules/
+dist/
+
+# IDEs
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Variáveis de ambiente
+.env
