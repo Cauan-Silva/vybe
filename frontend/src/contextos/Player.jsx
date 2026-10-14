@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api, urlArquivo } from '../services/api.js'
+import { criarMotorSpotify } from '../services/spotifyPlayer.js'
 import { embaralhar } from '../utils/formato.js'
 import { useAuth } from './Auth.jsx'
 
@@ -9,6 +10,10 @@ import { useAuth } from './Auth.jsx'
  *
  * A fila guarda a lista original (musicas), a ordem de reprodução (ordem, que é
  * embaralhada no modo aleatório) e a posição atual dentro dessa ordem (pos).
+ *
+ * Músicas com origem SPOTIFY não usam o <audio>: quem toca é o player oficial do
+ * Spotify (services/spotifyPlayer.js). O "motor" diz qual dos dois está no comando;
+ * os controles (play, pausa, pular, volume, barra de tempo) são os mesmos para os dois.
  *
  * O tempo de reprodução fica num contexto separado: ele muda várias vezes por
  * segundo e só a barra do player precisa dele, então as listas não re-renderizam à toa.
@@ -52,6 +57,42 @@ export function PlayerProvider({ children }) {
   useEffect(() => {
     tokenRef.current = token
   }, [token])
+  const volumeRef = useRef(volume)
+  const mudoRef = useRef(false)
+  const proximaRef = useRef(() => {})
+  const motorRef = useRef('audio') // 'audio' | 'spotify'
+  const fimSpotifyRef = useRef(false) // a última música do Spotify da fila acabou
+
+  // Token do Spotify para o player, guardado até perto de vencer.
+  const tokenSpotifyRef = useRef(null)
+  const spotifyRef = useRef(null)
+  if (spotifyRef.current === null) {
+    spotifyRef.current = criarMotorSpotify({
+      obterToken: async () => {
+        const guardado = tokenSpotifyRef.current
+        if (guardado && guardado.expira > Date.now() + 60_000) return guardado.valor
+        if (!tokenRef.current) throw new Error('Entre no VYBE e conecte o Spotify para tocar esta música.')
+        const r = await api.spotifyToken(tokenRef.current)
+        tokenSpotifyRef.current = { valor: r.accessToken, expira: Date.now() + r.expiraEmSegundos * 1000 }
+        return r.accessToken
+      },
+      aoMudar: ({ tocando: t, posicao, duracao: d }) => {
+        if (motorRef.current !== 'spotify') return
+        setTocando(t)
+        setTempo(posicao)
+        if (d > 0) setDuracao(d)
+        if (t) setErro(null)
+      },
+      aoTerminar: () => {
+        if (motorRef.current === 'spotify') proximaRef.current(true)
+      },
+      aoErro: (mensagem) => {
+        if (motorRef.current !== 'spotify') return
+        setErro(mensagem)
+        setTocando(false)
+      },
+    })
+  }
   useEffect(() => {
     repetirRef.current = repetir
   }, [repetir])
@@ -65,13 +106,29 @@ export function PlayerProvider({ children }) {
 
   const carregar = useCallback((musica) => {
     const audio = audioRef.current
+    const spotify = spotifyRef.current
     setErro(null)
     setTempo(0)
     setDuracao(musica.duracaoSegundos ?? 0)
-    audio.src = urlArquivo(musica.audioUrl)
-    audio.play().catch(() => {
-      // O navegador pode bloquear o play automático; o botão continua funcionando.
-    })
+    fimSpotifyRef.current = false
+
+    if (musica.origem === 'SPOTIFY') {
+      motorRef.current = 'spotify'
+      audio.pause()
+      setTocando(false)
+      spotify.tocar(musica.audioUrl, mudoRef.current ? 0 : volumeRef.current).catch((e) => {
+        if (motorRef.current !== 'spotify') return
+        setErro(e.message)
+        setTocando(false)
+      })
+    } else {
+      if (motorRef.current === 'spotify') spotify.parar()
+      motorRef.current = 'audio'
+      audio.src = urlArquivo(musica.audioUrl)
+      audio.play().catch(() => {
+        // O navegador pode bloquear o play automático; o botão continua funcionando.
+      })
+    }
     if (tokenRef.current) api.registrarReproducao(musica.id, tokenRef.current).catch(() => {})
   }, [])
 
@@ -96,9 +153,22 @@ export function PlayerProvider({ children }) {
 
   const alternarPlay = useCallback(() => {
     const audio = audioRef.current
-    if (filaRef.current.pos < 0) return
+    const f = filaRef.current
+    if (f.pos < 0) return
+    if (motorRef.current === 'spotify') {
+      // Depois do fim da fila, "tocar" recomeça a música em vez de continuar o que o Spotify puser.
+      if (fimSpotifyRef.current) carregar(f.musicas[f.ordem[f.pos]])
+      else spotifyRef.current.alternar()
+      return
+    }
     if (audio.paused) audio.play().catch(() => {})
     else audio.pause()
+  }, [carregar])
+
+  const buscar = useCallback((segundos) => {
+    if (motorRef.current === 'spotify') spotifyRef.current.buscar(segundos)
+    else audioRef.current.currentTime = segundos
+    setTempo(segundos)
   }, [])
 
   const proxima = useCallback(
@@ -106,15 +176,28 @@ export function PlayerProvider({ children }) {
       const f = filaRef.current
       const audio = audioRef.current
       if (f.pos < 0) return
+      const noSpotify = motorRef.current === 'spotify'
       if (automatico && repetirRef.current === 'uma') {
-        audio.currentTime = 0
-        audio.play().catch(() => {})
+        if (noSpotify) {
+          irPara({ ...f })
+        } else {
+          audio.currentTime = 0
+          audio.play().catch(() => {})
+        }
       } else if (f.pos + 1 < f.ordem.length) {
         irPara({ ...f, pos: f.pos + 1 })
       } else if (repetirRef.current !== 'nao') {
         irPara({ ...f, pos: 0 })
       } else if (automatico) {
-        audio.currentTime = 0 // fim da fila: volta ao começo da última música, pausada
+        // Fim da fila: para tudo (no Spotify, também a reprodução automática dele).
+        if (noSpotify) {
+          spotifyRef.current.pausar()
+          fimSpotifyRef.current = true
+          setTocando(false)
+          setTempo(0)
+        } else {
+          audio.currentTime = 0 // volta ao começo da última música, pausada
+        }
       }
     },
     [irPara],
@@ -122,12 +205,12 @@ export function PlayerProvider({ children }) {
 
   const anterior = useCallback(() => {
     const f = filaRef.current
-    const audio = audioRef.current
     if (f.pos < 0) return
+    const posicao = motorRef.current === 'spotify' ? spotifyRef.current.posicao() : audioRef.current.currentTime
     // Como nos players de verdade: depois de 3 s, "anterior" recomeça a música atual.
-    if (audio.currentTime > 3 || f.pos === 0) audio.currentTime = 0
+    if (posicao > 3 || f.pos === 0) buscar(0)
     else irPara({ ...f, pos: f.pos - 1 })
-  }, [irPara])
+  }, [irPara, buscar])
 
   const irParaPosicao = useCallback((pos) => irPara({ ...filaRef.current, pos }), [irPara])
 
@@ -164,28 +247,24 @@ export function PlayerProvider({ children }) {
     [],
   )
 
-  const buscar = useCallback((segundos) => {
-    audioRef.current.currentTime = segundos
-    setTempo(segundos)
-  }, [])
-
   // Eventos do <audio>
-  const proximaRef = useRef(proxima)
   useEffect(() => {
     proximaRef.current = proxima
   }, [proxima])
 
   useEffect(() => {
     const audio = audioRef.current
-    const aoAtualizarTempo = () => setTempo(audio.currentTime)
-    const aoSaberDuracao = () => Number.isFinite(audio.duration) && setDuracao(audio.duration)
-    const aoTocar = () => setTocando(true)
-    const aoPausar = () => setTocando(false)
-    const aoTerminar = () => proximaRef.current(true)
-    const aoFalhar = () => {
+    // Enquanto o Spotify está no comando, o <audio> fica parado e seus eventos não contam.
+    const doAudio = (funcao) => (e) => motorRef.current === 'audio' && funcao(e)
+    const aoAtualizarTempo = doAudio(() => setTempo(audio.currentTime))
+    const aoSaberDuracao = doAudio(() => Number.isFinite(audio.duration) && setDuracao(audio.duration))
+    const aoTocar = doAudio(() => setTocando(true))
+    const aoPausar = doAudio(() => setTocando(false))
+    const aoTerminar = doAudio(() => proximaRef.current(true))
+    const aoFalhar = doAudio(() => {
       setTocando(false)
       setErro('Não foi possível tocar esta música.')
-    }
+    })
     audio.addEventListener('timeupdate', aoAtualizarTempo)
     audio.addEventListener('durationchange', aoSaberDuracao)
     audio.addEventListener('play', aoTocar)
@@ -202,7 +281,46 @@ export function PlayerProvider({ children }) {
     }
   }, [])
 
+  // O Spotify não avisa o tempo continuamente: a barra é atualizada aqui enquanto toca.
   useEffect(() => {
+    if (!tocando) return undefined
+    const id = setInterval(() => {
+      if (motorRef.current === 'spotify') setTempo(spotifyRef.current.posicao())
+    }, 500)
+    return () => clearInterval(id)
+  }, [tocando])
+
+  // Liga o player do Spotify já ao entrar (se a conta pode tocar), para o primeiro play
+  // ser imediato. Ao sair do VYBE, desliga.
+  useEffect(() => {
+    tokenSpotifyRef.current = null
+    const spotify = spotifyRef.current
+    if (!token) {
+      spotify.desligar()
+      return undefined
+    }
+    let cancelado = false
+    api
+      .spotifyStatus(token)
+      .then((s) => {
+        if (!cancelado && s.podeTocar) spotify.iniciar(mudoRef.current ? 0 : volumeRef.current).catch(() => {})
+      })
+      .catch(() => {})
+    return () => {
+      cancelado = true
+    }
+  }, [token])
+
+  /** Chamado pela página Spotify depois de conectar (ou reconectar) a conta. */
+  const prepararSpotify = useCallback(() => {
+    tokenSpotifyRef.current = null
+    spotifyRef.current.iniciar(mudoRef.current ? 0 : volumeRef.current).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    volumeRef.current = volume
+    mudoRef.current = mudo
+    spotifyRef.current.volume(mudo ? 0 : volume)
     audioRef.current.volume = volume
     audioRef.current.muted = mudo
     try {
@@ -258,10 +376,11 @@ export function PlayerProvider({ children }) {
       adicionarAFila,
       alternarAleatorio,
       alternarRepetir,
+      prepararSpotify,
     }),
     [atual, tocando, erro, volume, mudo, aleatorio, repetir, temProxima, proximas, fila.pos,
       tocarLista, alternarPlay, proxima, anterior, irParaPosicao, adicionarAFila, alternarAleatorio,
-      alternarRepetir],
+      alternarRepetir, prepararSpotify],
   )
 
   const valorTempo = useMemo(() => ({ tempo, duracao, buscar }), [tempo, duracao, buscar])

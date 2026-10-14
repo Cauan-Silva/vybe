@@ -10,6 +10,7 @@ import Curtidas from './paginas/Curtidas.jsx'
 import Biblioteca from './paginas/Biblioteca.jsx'
 import Enviar from './paginas/Enviar.jsx'
 import Entrar from './paginas/Entrar.jsx'
+import Spotify from './paginas/Spotify.jsx'
 import NaoEncontrado from './paginas/NaoEncontrado.jsx'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="biblioteca" element={<Biblioteca />} />
         <Route path="enviar" element={<Enviar />} />
         <Route path="entrar" element={<Entrar />} />
+        <Route path="spotify" element={<Spotify />} />
         <Route path="*" element={<NaoEncontrado />} />
       </Route>
     </Routes>

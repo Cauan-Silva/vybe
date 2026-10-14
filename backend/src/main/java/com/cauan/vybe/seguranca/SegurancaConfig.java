@@ -44,6 +44,9 @@ public class SegurancaConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/musicas/**", "/api/artistas/**",
                                 "/api/albuns/**", "/api/busca", "/api/jamendo/**").permitAll()
+                        // O Spotify redireciona o navegador para cá, sem o token do VYBE.
+                        // Quem é o usuário vem do parâmetro "state" (veja SpotifyEstados).
+                        .requestMatchers(HttpMethod.GET, "/api/spotify/callback").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));
         return http.build();

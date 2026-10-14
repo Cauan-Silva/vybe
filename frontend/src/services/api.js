@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api'
+const BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8080/api'
 
 /** Endereço do servidor sem o "/api", para montar URLs de áudio e capas. */
 const ORIGEM_API = BASE.replace(/\/api\/?$/, '')
@@ -77,6 +77,16 @@ export const api = {
   descurtir: (id, token) => requisicao(`/eu/curtidas/${id}`, { metodo: 'DELETE', token }),
   registrarReproducao: (id, token) => requisicao(`/eu/reproducoes/${id}`, { metodo: 'POST', token }),
   recentes: (token) => requisicao('/eu/recentes', { token }),
+
+  // Spotify (com login)
+  spotifyStatus: (token) => requisicao('/spotify/status', { token }),
+  spotifyAutorizar: (token) => requisicao('/spotify/autorizar', { token }),
+  spotifyDesconectar: (token) => requisicao('/spotify/conexao', { metodo: 'DELETE', token }),
+  spotifyPlaylists: (token) => requisicao('/spotify/playlists', { token }),
+  spotifyImportar: (id, token) =>
+    requisicao(`/spotify/playlists/${encodeURIComponent(id)}/importar`, { metodo: 'POST', token }),
+  spotifyMaisOuvidos: (periodo, token) => requisicao(`/spotify/mais-ouvidos?periodo=${periodo}`, { token }),
+  spotifyToken: (token) => requisicao('/spotify/token', { token }),
 
   // Playlists (com login)
   playlists: (token) => requisicao('/playlists', { token }),

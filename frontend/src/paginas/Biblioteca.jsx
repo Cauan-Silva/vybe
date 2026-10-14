@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Cartao, { Grade } from '../components/Cartao.jsx'
 import { PrecisaEntrar } from '../components/Estados.jsx'
 import { useAuth } from '../contextos/Auth.jsx'
@@ -49,6 +49,9 @@ export default function Biblioteca() {
         ))}
       </Grade>
 
+      <p className="conta-movel">
+        <Link to="/spotify">Conectar o Spotify</Link>
+      </p>
       <p className="conta-movel">
         Conectado como {usuario.nome}.{' '}
         <button type="button" className="link-botao" onClick={sair}>

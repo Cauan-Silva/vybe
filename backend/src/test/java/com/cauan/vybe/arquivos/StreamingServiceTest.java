@@ -69,13 +69,14 @@ class StreamingServiceTest {
 
     @Test
     void pularParaOMeioDaMusicaBuscaSoAqueleTrecho() {
-        ResponseEntity<?> resposta = service.responder(arquivo, MP3, "bytes=2000000-");
+        // Do byte 1.000.000 ainda sobram ~2 MB, então vem um bloco inteiro.
+        ResponseEntity<?> resposta = service.responder(arquivo, MP3, "bytes=1000000-");
 
         byte[] trecho = corpo(resposta);
         assertThat(trecho).hasSize((int) BLOCO);
-        assertThat(trecho[0]).isEqualTo((byte) (2_000_000 % 251));
+        assertThat(trecho[0]).isEqualTo((byte) (1_000_000 % 251));
         assertThat(resposta.getHeaders().getFirst(HttpHeaders.CONTENT_RANGE))
-                .isEqualTo("bytes 2000000-" + (2_000_000 + BLOCO - 1) + "/" + TAMANHO);
+                .isEqualTo("bytes 1000000-" + (1_000_000 + BLOCO - 1) + "/" + TAMANHO);
     }
 
     @Test

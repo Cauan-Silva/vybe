@@ -35,12 +35,17 @@ public interface MusicaRepository extends JpaRepository<Musica, Long> {
     @EntityGraph(attributePaths = {"artista", "album"})
     List<Musica> findByIdIn(Collection<Long> ids);
 
+    /**
+     * Faixas do Spotify ficam fora da busca: só tocam para quem tem Premium conectado,
+     * e aparecem nas playlists importadas e nos mais ouvidos de cada pessoa.
+     */
     @EntityGraph(attributePaths = {"artista", "album"})
     @Query("""
             select m from Musica m
-            where lower(m.titulo) like :padrao
-               or lower(m.artista.nome) like :padrao
-               or lower(m.album.titulo) like :padrao
+            where m.origem <> com.cauan.vybe.catalogo.Origem.SPOTIFY
+              and (lower(m.titulo) like :padrao
+                   or lower(m.artista.nome) like :padrao
+                   or lower(m.album.titulo) like :padrao)
             order by m.titulo
             """)
     List<Musica> buscar(@Param("padrao") String padrao, Pageable pagina);

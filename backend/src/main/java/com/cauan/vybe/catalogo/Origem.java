@@ -5,5 +5,11 @@ public enum Origem {
     /** Arquivo enviado por um usuário e servido pela própria API. */
     UPLOAD,
     /** Catálogo Creative Commons do Jamendo (fase 2), tocado a partir do servidor deles. */
-    JAMENDO
+    JAMENDO,
+    /**
+     * Faixa do Spotify (fase 4). O VYBE guarda só os dados (título, artista, capa e o
+     * endereço spotify:track:...); o áudio é tocado pelo player oficial do Spotify no navegador,
+     * e só para quem tem conta Premium conectada.
+     */
+    SPOTIFY
 }

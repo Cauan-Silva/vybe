@@ -80,6 +80,21 @@ public class JamendoService {
         return popularesEmCache;
     }
 
+    /** Faixas do Jamendo sem gravar nada (usado para procurar equivalentes ao importar do Spotify). */
+    public List<Faixa> procurar(String termo) {
+        if (!disponivel() || termo == null || termo.isBlank()) {
+            return List.of();
+        }
+        return cliente.buscar(termo.trim());
+    }
+
+    /** Grava uma faixa escolhida e devolve a música, ou null se a faixa não servir. */
+    @Transactional
+    public MusicaResponse importarUma(Faixa faixa) {
+        List<MusicaResponse> importadas = importar(List.of(faixa));
+        return importadas.isEmpty() ? null : importadas.get(0);
+    }
+
     /** Cria ou atualiza as músicas. Faixas sem áudio ou sem duração são ignoradas. */
     List<MusicaResponse> importar(List<Faixa> faixas) {
         LocalDateTime agora = LocalDateTime.now(clock);

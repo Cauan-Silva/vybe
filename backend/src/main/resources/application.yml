@@ -21,7 +21,9 @@ server:
 
 vybe:
   # Endereços do front-end que podem chamar a API (separe vários com vírgula)
-  cors-origens: ${CORS_ORIGENS:http://localhost:5173}
+  cors-origens: ${CORS_ORIGENS:http://localhost:5173,http://127.0.0.1:5173}
+  # Para onde o navegador volta depois de conectar o Spotify
+  frontend-url: ${FRONTEND_URL:http://127.0.0.1:5173}
   jwt:
     # Em produção, defina JWT_SEGREDO com pelo menos 32 caracteres aleatórios.
     segredo: ${JWT_SEGREDO:segredo-de-desenvolvimento-troque-em-producao-123}
@@ -32,6 +34,12 @@ vybe:
   jamendo:
     # Client ID do app em devportal.jamendo.com. Vazio = integração desligada.
     client-id: ${JAMENDO_CLIENT_ID:}
+  spotify:
+    # App criado em developer.spotify.com/dashboard. Vazio = integração desligada.
+    client-id: ${SPOTIFY_CLIENT_ID:}
+    client-secret: ${SPOTIFY_CLIENT_SECRET:}
+    # O Spotify não aceita "localhost": tem que ser 127.0.0.1 (igual ao cadastrado no painel).
+    redirect-uri: ${SPOTIFY_REDIRECT_URI:http://127.0.0.1:8080/api/spotify/callback}
   streaming:
     # Tamanho máximo de cada pedaço de áudio enviado ao navegador (1 MB)
     bloco-bytes: 1048576

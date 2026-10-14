@@ -75,6 +75,11 @@ function Lateral() {
             <Icone nome="enviar" /> Enviar música
           </NavLink>
         </li>
+        <li>
+          <NavLink to="/spotify">
+            <Icone nome="conectar" /> Spotify
+          </NavLink>
+        </li>
       </ul>
 
       <div className="lateral__biblioteca">

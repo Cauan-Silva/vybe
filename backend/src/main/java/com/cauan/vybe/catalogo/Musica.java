@@ -51,7 +51,7 @@ public class Musica {
     @Column(name = "tamanho_bytes")
     private Long tamanhoBytes;
 
-    /** JAMENDO (fase 2): endereço do áudio no servidor externo. */
+    /** JAMENDO: endereço do áudio no servidor externo. SPOTIFY: o endereço spotify:track:... */
     @Column(name = "url_externa", length = 500)
     private String urlExterna;
 
@@ -62,7 +62,7 @@ public class Musica {
     @Column(name = "licenca_url", length = 300)
     private String licencaUrl;
 
-    /** JAMENDO: página da faixa no site de origem. */
+    /** JAMENDO e SPOTIFY: página da faixa no site de origem. */
     @Column(name = "pagina_url", length = 300)
     private String paginaUrl;
 
