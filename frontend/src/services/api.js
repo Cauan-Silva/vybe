@@ -65,6 +65,11 @@ export const api = {
   buscar: (termo) => requisicao(`/busca?q=${encodeURIComponent(termo)}`),
   excluirMusica: (id, token) => requisicao(`/musicas/${id}`, { metodo: 'DELETE', token }),
 
+  // Jamendo (catálogo Creative Commons)
+  jamendoStatus: () => requisicao('/jamendo/status'),
+  jamendoBusca: (termo) => requisicao(`/jamendo/busca?q=${encodeURIComponent(termo)}`),
+  jamendoPopulares: () => requisicao('/jamendo/populares'),
+
   // Biblioteca (com login)
   curtidas: (token) => requisicao('/eu/curtidas', { token }),
   idsCurtidos: (token) => requisicao('/eu/curtidas/ids', { token }),

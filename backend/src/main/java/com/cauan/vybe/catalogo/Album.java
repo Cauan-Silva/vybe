@@ -32,6 +32,10 @@ public class Album {
     @Column(name = "capa_arquivo", length = 100)
     private String capaArquivo;
 
+    /** Capa hospedada fora (Jamendo). Usada quando não há capa enviada. */
+    @Column(name = "capa_url_externa", length = 500)
+    private String capaUrlExterna;
+
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
@@ -50,7 +54,7 @@ public class Album {
      */
     public String capaUrl() {
         if (capaArquivo == null) {
-            return null;
+            return capaUrlExterna;
         }
         return "/api/albuns/" + id + "/capa?v=" + capaArquivo.substring(0, Math.min(8, capaArquivo.length()));
     }
@@ -61,5 +65,7 @@ public class Album {
     public Artista getArtista() { return artista; }
     public String getCapaArquivo() { return capaArquivo; }
     public void setCapaArquivo(String capaArquivo) { this.capaArquivo = capaArquivo; }
+    public String getCapaUrlExterna() { return capaUrlExterna; }
+    public void setCapaUrlExterna(String capaUrlExterna) { this.capaUrlExterna = capaUrlExterna; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
 }

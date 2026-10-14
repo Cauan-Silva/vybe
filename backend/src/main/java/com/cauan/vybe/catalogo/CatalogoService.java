@@ -32,7 +32,8 @@ public class CatalogoService {
     }
 
     public List<MusicaResponse> novidades() {
-        return MusicaResponse.de(musicas.findAllByOrderByCriadaEmDesc(PageRequest.of(0, LIMITE_NOVIDADES)));
+        return MusicaResponse.de(
+                musicas.findByOrigemOrderByCriadaEmDesc(Origem.UPLOAD, PageRequest.of(0, LIMITE_NOVIDADES)));
     }
 
     public MusicaResponse musica(Long id) {

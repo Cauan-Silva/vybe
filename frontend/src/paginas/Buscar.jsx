@@ -24,10 +24,14 @@ export default function Buscar() {
   }, [texto, termoUrl, setParametros])
 
   const resultado = useCarregar(() => (termoUrl ? api.buscar(termoUrl) : null), [termoUrl])
+  // Busca no Jamendo em paralelo. Um erro lá não atrapalha os resultados daqui.
+  const jamendo = useCarregar(() => (termoUrl ? api.jamendoBusca(termoUrl) : []), [termoUrl])
   const artistas = useCarregar(() => api.artistas(), [])
 
   const r = resultado.dados
-  const vazio = r && !r.musicas.length && !r.artistas.length && !r.albuns.length
+  const doJamendo = jamendo.dados ?? []
+  const vazio =
+    r && !r.musicas.length && !r.artistas.length && !r.albuns.length && !jamendo.carregando && !doJamendo.length
 
   return (
     <div className="pagina">
@@ -63,6 +67,20 @@ export default function Buscar() {
         <section className="secao">
           <h2 className="titulo-secao">Músicas</h2>
           <ListaMusicas musicas={r.musicas} onAlterada={resultado.recarregar} />
+        </section>
+      )}
+
+      {termoUrl && (doJamendo.length > 0 || jamendo.erro) && (
+        <section className="secao">
+          <div className="titulo-com-nota">
+            <h2 className="titulo-secao">No Jamendo</h2>
+            <p className="nota-secao">Músicas livres, sob licença Creative Commons</p>
+          </div>
+          {jamendo.erro ? (
+            <p className="estado">{jamendo.erro.message}</p>
+          ) : (
+            <ListaMusicas musicas={doJamendo} />
+          )}
         </section>
       )}
 

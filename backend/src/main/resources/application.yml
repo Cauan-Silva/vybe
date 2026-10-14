@@ -29,6 +29,9 @@ vybe:
   armazenamento:
     # Pasta onde ficam os áudios e as capas enviados
     pasta: ${ARMAZENAMENTO_PASTA:./dados}
+  jamendo:
+    # Client ID do app em devportal.jamendo.com. Vazio = integração desligada.
+    client-id: ${JAMENDO_CLIENT_ID:}
   streaming:
     # Tamanho máximo de cada pedaço de áudio enviado ao navegador (1 MB)
     bloco-bytes: 1048576

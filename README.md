@@ -11,14 +11,15 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 - **Teclas de mídia e tela de bloqueio** do celular/computador via Media Session API; barra de espaço toca/pausa
 - **Envio de músicas** com barra de progresso; a duração é lida no navegador e artista/álbum são criados automaticamente (música sem álbum vira single)
 - **Contas** com cadastro e login (JWT), **curtidas**, **playlists** privadas e **tocadas recentemente**
-- **Busca** por título, artista e álbum
+- **Busca** por título, artista e álbum, nas suas músicas e no catálogo do Jamendo
+- **Catálogo Creative Commons do Jamendo** integrado: as faixas aparecem na busca e em "Em alta no Jamendo", e funcionam como as enviadas (curtir, playlist, fila), com selo e link da licença
 - Layout responsivo, com navegação inferior no celular
 
 ## Tecnologias
 
 - **Back-end:** Java 21, Spring Boot 3.5 (Web, Data JPA, Validation, Security), JWT, Flyway, PostgreSQL
 - **Front-end:** React 19, React Router, Vite
-- **Testes:** JUnit 5, Mockito, AssertJ (18 testes, incluindo o streaming)
+- **Testes:** JUnit 5, Mockito, AssertJ (25 testes, incluindo o streaming e a importação do Jamendo)
 
 ## Como rodar no seu computador
 
@@ -39,6 +40,12 @@ $psql = (Get-ChildItem "C:\Program Files\PostgreSQL\*\bin\psql.exe" | Select-Obj
 ```bash
 cd backend
 mvn spring-boot:run
+```
+
+Para ligar o catálogo do Jamendo, crie um app gratuito em devportal.jamendo.com e defina o Client ID antes de rodar (sem ele, o resto funciona normalmente):
+
+```powershell
+[Environment]::SetEnvironmentVariable('JAMENDO_CLIENT_ID', 'SEU_CLIENT_ID', 'User')
 ```
 
 Sobe em `http://localhost:8080`; documentação em `http://localhost:8080/swagger-ui.html`. As tabelas são criadas pelo Flyway, e os arquivos enviados ficam em `backend/dados/` (fora do Git).
@@ -80,6 +87,7 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET | `/api/artistas`, `/api/artistas/{id}` | público | Artistas e discografia |
 | GET | `/api/albuns/{id}`, `/api/albuns/{id}/capa` | público | Álbum e capa |
 | GET | `/api/busca?q=` | público | Busca músicas, artistas e álbuns |
+| GET | `/api/jamendo/busca?q=`, `/api/jamendo/populares` | público | Catálogo do Jamendo (importa as faixas) |
 | GET/PUT/DELETE | `/api/eu/curtidas[/{musicaId}]` | login | Curtidas |
 | POST/GET | `/api/eu/reproducoes/{id}`, `/api/eu/recentes` | login | Tocadas recentemente |
 | GET/POST/PUT/DELETE | `/api/playlists[/{id}]` | login (dono) | Playlists |
@@ -95,6 +103,7 @@ backend/src/main/java/com/cauan/vybe/
 ├── biblioteca/  # curtidas e tocadas recentemente
 ├── catalogo/    # músicas, artistas, álbuns, envio e busca
 ├── comum/       # erros e configuração
+├── jamendo/     # cliente da API do Jamendo e importação das faixas
 ├── playlist/    # playlists e suas músicas
 ├── seguranca/   # JWT e regras de acesso
 └── usuario/     # cadastro e login
@@ -109,6 +118,10 @@ frontend/src/
 
 ## Próximas fases
 
-- [ ] **Jamendo:** catálogo Creative Commons misturado às músicas enviadas (o banco já tem `origem` e `url_externa`)
+- [x] **Jamendo:** catálogo Creative Commons misturado às músicas enviadas
 - [ ] **Spotify:** entrar com a conta, importar playlists e ver artistas mais ouvidos
 - [ ] Guardar os arquivos num serviço de armazenamento (S3/R2) para publicar online, já que o disco de serviços gratuitos é apagado a cada deploy
+
+## Como funciona a integração com o Jamendo
+
+A API do VYBE chama a API pública do Jamendo (`/v3.0/tracks`) e transforma cada faixa recebida numa `Musica` com `origem = JAMENDO`, guardando o endereço do áudio, a capa, a licença e a página original. Com um id próprio, a faixa entra em curtidas, playlists, recentes e fila sem código especial. O áudio continua sendo tocado direto do servidor do Jamendo. As "Em alta" ficam em cache por uma hora para não chamar a API do Jamendo a cada visita.

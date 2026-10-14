@@ -58,6 +58,14 @@ public class Musica {
     @Column(name = "id_externo", length = 50)
     private String idExterno;
 
+    /** JAMENDO: link da licença Creative Commons da faixa. */
+    @Column(name = "licenca_url", length = 300)
+    private String licencaUrl;
+
+    /** JAMENDO: página da faixa no site de origem. */
+    @Column(name = "pagina_url", length = 300)
+    private String paginaUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enviada_por")
     private Usuario enviadaPor;
@@ -92,6 +100,10 @@ public class Musica {
     public void setUrlExterna(String urlExterna) { this.urlExterna = urlExterna; }
     public String getIdExterno() { return idExterno; }
     public void setIdExterno(String idExterno) { this.idExterno = idExterno; }
+    public String getLicencaUrl() { return licencaUrl; }
+    public void setLicencaUrl(String licencaUrl) { this.licencaUrl = licencaUrl; }
+    public String getPaginaUrl() { return paginaUrl; }
+    public void setPaginaUrl(String paginaUrl) { this.paginaUrl = paginaUrl; }
     public Usuario getEnviadaPor() { return enviadaPor; }
     public void setEnviadaPor(Usuario enviadaPor) { this.enviadaPor = enviadaPor; }
     public LocalDateTime getCriadaEm() { return criadaEm; }

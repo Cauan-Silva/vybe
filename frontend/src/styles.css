@@ -1493,3 +1493,54 @@ button.fila__item:hover {
     width: auto;
   }
 }
+
+/* ---------- Jamendo: selo de licença e títulos de seção ---------- */
+
+.lista__linha-artista,
+.player__linha-artista {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.lista__linha-artista .lista__artista,
+.player__linha-artista .player__artista {
+  min-width: 0;
+}
+
+.selo-cc {
+  flex: 0 0 auto;
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  background: var(--texto-suave);
+  color: var(--fundo);
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+a.selo-cc:hover,
+a.selo-cc:focus-visible {
+  background: var(--rotulo);
+}
+
+.titulo-com-nota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.titulo-com-nota .titulo-secao {
+  margin: 0;
+}
+
+.nota-secao {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--texto-suave);
+}

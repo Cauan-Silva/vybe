@@ -6,6 +6,7 @@ import BotaoCurtir from './BotaoCurtir.jsx'
 import Capa from './Capa.jsx'
 import FilaPainel from './FilaPainel.jsx'
 import Icone from './Icone.jsx'
+import SeloLicenca from './SeloLicenca.jsx'
 
 const ROTULO_REPETIR = {
   nao: 'Repetir: desligado',
@@ -38,9 +39,12 @@ export default function PlayerBar() {
           <Link className="player__titulo" to={`/album/${atual.albumId}`}>
             {atual.titulo}
           </Link>
-          <Link className="player__artista" to={`/artista/${atual.artistaId}`}>
-            {atual.artistaNome}
-          </Link>
+          <span className="player__linha-artista">
+            <SeloLicenca musica={atual} />
+            <Link className="player__artista" to={`/artista/${atual.artistaId}`}>
+              {atual.artistaNome}
+            </Link>
+          </span>
           {p.erro && <p className="player__erro">{p.erro}</p>}
         </div>
         <BotaoCurtir musica={atual} />

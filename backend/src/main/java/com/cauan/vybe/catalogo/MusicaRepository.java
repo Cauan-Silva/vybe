@@ -16,8 +16,12 @@ import java.util.Optional;
  */
 public interface MusicaRepository extends JpaRepository<Musica, Long> {
 
+    /** "Chegaram agora" mostra só o que foi enviado; o Jamendo tem a própria seção. */
     @EntityGraph(attributePaths = {"artista", "album"})
-    List<Musica> findAllByOrderByCriadaEmDesc(Pageable pagina);
+    List<Musica> findByOrigemOrderByCriadaEmDesc(Origem origem, Pageable pagina);
+
+    @EntityGraph(attributePaths = {"artista", "album"})
+    Optional<Musica> findByOrigemAndIdExterno(Origem origem, String idExterno);
 
     @EntityGraph(attributePaths = {"artista", "album"})
     Optional<Musica> findWithDetalhesById(Long id);

@@ -43,7 +43,7 @@ public class SegurancaConfig {
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/musicas/**", "/api/artistas/**",
-                                "/api/albuns/**", "/api/busca").permitAll()
+                                "/api/albuns/**", "/api/busca", "/api/jamendo/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));
         return http.build();

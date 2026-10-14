@@ -5,6 +5,7 @@ import BotaoCurtir from './BotaoCurtir.jsx'
 import Capa from './Capa.jsx'
 import Icone from './Icone.jsx'
 import MenuMusica from './MenuMusica.jsx'
+import SeloLicenca from './SeloLicenca.jsx'
 
 /**
  * Lista de músicas. Clicar numa linha toca a lista a partir dela;
@@ -55,9 +56,12 @@ export default function ListaMusicas({
               {mostrarCapa && <Capa src={m.capaUrl} titulo={m.albumTitulo} className="lista__capa" />}
               <div>
                 <p className="lista__nome">{m.titulo}</p>
-                <Link className="lista__artista" to={`/artista/${m.artistaId}`}>
-                  {m.artistaNome}
-                </Link>
+                <span className="lista__linha-artista">
+                  <SeloLicenca musica={m} />
+                  <Link className="lista__artista" to={`/artista/${m.artistaId}`}>
+                    {m.artistaNome}
+                  </Link>
+                </span>
               </div>
             </div>
 

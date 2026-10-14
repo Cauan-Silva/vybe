@@ -34,6 +34,13 @@ public final class Excecoes {
         }
     }
 
+    /** 502: um serviço de fora (como o Jamendo) não respondeu direito. */
+    public static class ServicoExterno extends RuntimeException {
+        public ServicoExterno(String mensagem, Throwable causa) {
+            super(mensagem, causa);
+        }
+    }
+
     /** 401: e-mail ou senha incorretos. Não diz qual dos dois, de propósito. */
     public static class CredenciaisInvalidas extends RuntimeException {
         public CredenciaisInvalidas() {

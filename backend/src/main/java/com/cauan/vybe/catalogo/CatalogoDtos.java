@@ -18,7 +18,9 @@ public final class CatalogoDtos {
                                  int duracaoSegundos,
                                  Origem origem,
                                  String audioUrl,
-                                 Long enviadaPorId) {
+                                 Long enviadaPorId,
+                                 String licencaUrl,
+                                 String paginaUrl) {
 
         public static MusicaResponse de(Musica m) {
             return new MusicaResponse(
@@ -32,7 +34,9 @@ public final class CatalogoDtos {
                     m.getDuracaoSegundos(),
                     m.getOrigem(),
                     m.audioUrl(),
-                    m.getEnviadaPor() == null ? null : m.getEnviadaPor().getId());
+                    m.getEnviadaPor() == null ? null : m.getEnviadaPor().getId(),
+                    m.getLicencaUrl(),
+                    m.getPaginaUrl());
         }
 
         public static List<MusicaResponse> de(List<Musica> musicas) {

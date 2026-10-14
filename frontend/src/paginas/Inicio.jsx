@@ -14,8 +14,11 @@ export default function Inicio() {
 
   const catalogo = useCarregar(() => Promise.all([api.novidades(), api.artistas()]), [])
   const recentes = useCarregar(() => (token ? chamar((t) => api.recentes(t)) : []), [token])
+  // O Jamendo é opcional: se falhar ou estiver desligado, a seção só não aparece.
+  const jamendo = useCarregar(() => api.jamendoPopulares().catch(() => []), [])
 
   const [novidades, artistas] = catalogo.dados ?? [[], []]
+  const populares = jamendo.dados ?? []
   const primeiroNome = usuario?.nome.split(' ')[0]
 
   return (
@@ -28,7 +31,7 @@ export default function Inicio() {
       {catalogo.carregando && <Carregando />}
       {catalogo.erro && <Erro erro={catalogo.erro} onTentar={catalogo.recarregar} />}
 
-      {!catalogo.carregando && !catalogo.erro && novidades.length === 0 && (
+      {!catalogo.carregando && !catalogo.erro && !jamendo.carregando && novidades.length === 0 && populares.length === 0 && (
         <div className="boas-vindas">
           <h2>O catálogo ainda está vazio</h2>
           <p>
@@ -63,6 +66,16 @@ export default function Inicio() {
         <section className="secao">
           <h2 className="titulo-secao">Chegaram agora</h2>
           <ListaMusicas musicas={novidades} onAlterada={catalogo.recarregar} />
+        </section>
+      )}
+
+      {populares.length > 0 && (
+        <section className="secao">
+          <div className="titulo-com-nota">
+            <h2 className="titulo-secao">Em alta no Jamendo</h2>
+            <p className="nota-secao">Músicas livres, sob licença Creative Commons</p>
+          </div>
+          <ListaMusicas musicas={populares} />
         </section>
       )}
 

@@ -34,6 +34,11 @@ public class TratadorDeErros {
         return problema(HttpStatus.FORBIDDEN, "Sem permissão", e.getMessage());
     }
 
+    @ExceptionHandler(Excecoes.ServicoExterno.class)
+    public ProblemDetail servicoExterno(Excecoes.ServicoExterno e) {
+        return problema(HttpStatus.BAD_GATEWAY, "Serviço externo indisponível", e.getMessage());
+    }
+
     @ExceptionHandler(Excecoes.CredenciaisInvalidas.class)
     public ProblemDetail credenciais(Excecoes.CredenciaisInvalidas e) {
         return problema(HttpStatus.UNAUTHORIZED, "Login inválido", e.getMessage());
