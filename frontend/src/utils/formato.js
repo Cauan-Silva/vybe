@@ -44,3 +44,30 @@ export function embaralhar(n, primeiro) {
   }
   return primeiro >= 0 && primeiro < n ? [primeiro, ...resto] : resto
 }
+
+const COMPACTO = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
+const RELATIVO = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' })
+
+/** 1234567 vira "1,2 mi". */
+export function numeroCompacto(n) {
+  return Number.isFinite(n) ? COMPACTO.format(n) : ''
+}
+
+/** Data ISO vira "há 3 dias", "há 2 meses"… */
+export function tempoRelativo(iso) {
+  const data = iso ? new Date(iso) : null
+  if (!data || Number.isNaN(data.getTime())) return ''
+  const segundos = (data.getTime() - Date.now()) / 1000
+  const unidades = [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['week', 604800],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+  ]
+  for (const [unidade, tamanho] of unidades) {
+    if (Math.abs(segundos) >= tamanho) return RELATIVO.format(Math.round(segundos / tamanho), unidade)
+  }
+  return 'agora'
+}

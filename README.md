@@ -14,6 +14,7 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 - **Player do Spotify (Web Playback SDK):** com conta Premium, as músicas do Spotify tocam completas no mesmo player do VYBE, com fila, aleatório, repetir e volume
 - **Busca no Spotify:** qualquer música do catálogo do Spotify, não só as das suas playlists
 - **YouTube (API oficial):** busca vídeos de música e toca no player oficial do YouTube, numa janelinha visível no canto da tela
+- **Aba Vídeos:** qualquer vídeo do YouTube (não só música), com em alta no Brasil por categoria, página do canal, visualizações e curtidas, "Assistir depois", histórico e continuar de onde parou
 - **Contas** com cadastro e login (JWT), **curtidas**, **playlists** privadas e **tocadas recentemente**
 - **Busca** por título, artista e álbum, nas suas músicas e no catálogo do Jamendo
 - **Catálogo Creative Commons do Jamendo** integrado: as faixas aparecem na busca e em "Em alta no Jamendo", e funcionam como as enviadas (curtir, playlist, fila), com selo e link da licença
@@ -23,7 +24,7 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 
 - **Back-end:** Java 21, Spring Boot 3.5 (Web, Data JPA, Validation, Security), JWT, Flyway, PostgreSQL
 - **Front-end:** React 19, React Router, Vite
-- **Testes:** JUnit 5, Mockito, AssertJ (58 testes, incluindo streaming, Jamendo e a integração com o Spotify)
+- **Testes:** JUnit 5, Mockito, AssertJ (72 testes, incluindo streaming, Jamendo e a integração com o Spotify)
 
 ## Como rodar no seu computador
 
@@ -99,7 +100,12 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET | `/api/spotify/token` | login | Token do player do Spotify no navegador |
 | GET | `/api/spotify/busca?q=` | login | Busca no catálogo do Spotify (só com o player liberado) |
 | GET | `/api/youtube/status` | público | Se a busca no YouTube está configurada |
-| GET | `/api/youtube/busca?q=` | login | Busca vídeos de música no YouTube |
+| GET | `/api/youtube/busca?q=` | login | Busca vídeos de música no YouTube (viram músicas do catálogo) |
+| GET | `/api/youtube/videos?q=`, `/api/youtube/videos/em-alta?categoria=` | login | Aba Vídeos: qualquer vídeo e os em alta no Brasil (por categoria) |
+| GET | `/api/youtube/canais/{id}` | login | Página do canal: dados e vídeos recentes |
+| GET/PUT/DELETE | `/api/eu/videos/assistir-depois[/{videoId}]` | login | Assistir depois |
+| GET/DELETE | `/api/eu/videos/historico` | login | Histórico de vídeos |
+| PUT | `/api/eu/videos/progresso` | login | Salva até onde o vídeo foi assistido |
 | DELETE | `/api/spotify/conexao` | login | Desconecta o Spotify |
 | GET/PUT/DELETE | `/api/eu/curtidas[/{musicaId}]` | login | Curtidas |
 | POST/GET | `/api/eu/reproducoes/{id}`, `/api/eu/recentes` | login | Tocadas recentemente |
@@ -160,5 +166,8 @@ Variáveis da API: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` e, se mudar o en
 1. **Busca (YouTube Data API v3):** a API do VYBE chama `search.list` (só vídeos da categoria Música que podem ser embutidos) e depois `videos.list` para pegar duração e miniatura. Cada vídeo vira uma `Musica` com `origem = YOUTUBE` e o endereço `youtube:ID`. Artista e título saem do título do vídeo ("Artista - Música (Official Video)") ou, sem o separador, do nome do canal.
 2. **Cota:** o Google dá 10.000 unidades por dia, e cada busca custa cerca de 101, ou seja, umas 100 buscas por dia. Por isso a busca exige login, só acontece quando a pessoa aperta Enter ou o botão (não a cada letra), e os resultados ficam 6 horas em cache na memória.
 3. **Player (IFrame Player API):** o vídeo toca no player oficial do YouTube, numa janelinha no canto da tela que pode ser aumentada. As regras do YouTube exigem o player visível (mínimo 200×200 px) e proíbem tocar só o áudio ou baixar o conteúdo, então o VYBE não faz nada disso. Vídeos ao vivo e os que o dono bloqueou para sites externos ficam fora dos resultados.
+
+4. **Aba Vídeos:** busca sem o filtro de música e mostra os vídeos em alta no Brasil, também por categoria (`videos.list` com `chart=mostPopular`, que custa só 1 unidade e fica 1 hora em cache). Esses vídeos não viram músicas do catálogo: tocam no player oficial do YouTube em tamanho grande, na própria página, e a música do VYBE pausa quando um vídeo começa.
+5. **Canal, Assistir depois, histórico e progresso:** a página do canal usa `channels.list` e a playlist de uploads (`playlistItems.list`), cerca de 3 unidades, com cache de 1 hora. Visualizações e curtidas vêm na mesma chamada de detalhes, sem custo extra. "Assistir depois", histórico e a posição de cada vídeo ficam numa tabela do VYBE (`video_usuario`), com uma cópia dos dados do vídeo, então as listas abrem sem gastar cota. O player salva a posição a cada 10 segundos, ao pausar e ao fechar; faltando menos de 10 segundos, o vídeo conta como terminado e recomeça do zero.
 
 Variável da API: `YOUTUBE_API_KEY` (chave criada em console.cloud.google.com, com a YouTube Data API v3 ativada).

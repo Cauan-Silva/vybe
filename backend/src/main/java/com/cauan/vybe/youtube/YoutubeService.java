@@ -9,8 +9,10 @@ import com.cauan.vybe.catalogo.Musica;
 import com.cauan.vybe.catalogo.MusicaRepository;
 import com.cauan.vybe.catalogo.Origem;
 import com.cauan.vybe.youtube.YoutubeDtos.Video;
+import com.cauan.vybe.youtube.YoutubeDtos.VideoResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -33,10 +35,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public class YoutubeService {
 
     static final Duration VALIDADE_CACHE = Duration.ofHours(6);
+    /** Em alta muda ao longo do dia, mas custa só 1 unidade: guarda por 1 hora. */
+    static final Duration VALIDADE_EM_ALTA = Duration.ofHours(1);
+    static final int LIMITE_VIDEOS = 12;
     private static final int MAXIMO_NO_CACHE = 300;
     private static final int TAMANHO_MAXIMO_URL = 500;
 
     private record Guardado(List<Video> videos, Instant em) {
+    }
+
+    private record GuardadoCanal(YoutubeDtos.CanalResponse canal, Instant em) {
     }
 
     private final YoutubeCliente cliente;
@@ -45,6 +53,7 @@ public class YoutubeService {
     private final AlbumRepository albuns;
     private final Clock clock;
     private final Map<String, Guardado> cache = new ConcurrentHashMap<>();
+    private final Map<String, GuardadoCanal> canais = new ConcurrentHashMap<>();
 
     public YoutubeService(YoutubeCliente cliente,
                           MusicaRepository musicas,
@@ -62,32 +71,111 @@ public class YoutubeService {
         return cliente.configurado();
     }
 
+    /** Busca de músicas: os vídeos viram músicas do catálogo, prontas para o player. */
     @Transactional
     public List<MusicaResponse> buscar(String termo) {
-        String limpo = termo == null ? "" : termo.trim().replaceAll("\\s+", " ");
+        String limpo = limpar(termo);
         if (!disponivel() || limpo.isEmpty()) {
             return List.of();
         }
-        if (limpo.length() > 100) {
-            limpo = limpo.substring(0, 100);
+        return importar(doCache("musica:" + limpo, VALIDADE_CACHE, () -> cliente.buscar(limpo)));
+    }
+
+    /** Aba Vídeos: busca qualquer vídeo (sem o filtro de música) e não grava nada no banco. */
+    public List<VideoResponse> buscarVideos(String termo) {
+        String limpo = limpar(termo);
+        if (!disponivel() || limpo.isEmpty()) {
+            return List.of();
         }
-        return importar(videos(limpo));
+        return paraVideos(doCache("video:" + limpo, VALIDADE_CACHE,
+                () -> cliente.buscar(limpo, false, LIMITE_VIDEOS)));
+    }
+
+    /** Aba Vídeos, antes de buscar: os vídeos em alta no Brasil. */
+    public List<VideoResponse> videosEmAlta() {
+        return videosEmAlta(null);
+    }
+
+    /** Em alta no Brasil, de uma categoria do YouTube (ex.: 20 = Games) ou de todas (null). */
+    public List<VideoResponse> videosEmAlta(Integer categoria) {
+        if (!disponivel()) {
+            return List.of();
+        }
+        if (categoria != null && (categoria < 1 || categoria > 50)) {
+            throw new com.cauan.vybe.comum.Excecoes.RegraNegocio("Categoria inválida");
+        }
+        return paraVideos(doCache("em-alta:" + (categoria == null ? "todas" : categoria), VALIDADE_EM_ALTA,
+                () -> cliente.populares(LIMITE_VIDEOS, categoria)));
+    }
+
+    /**
+     * Página do canal: dados e vídeos mais recentes. Custa cerca de 3 unidades (canal, lista
+     * de uploads e detalhes) e fica 1 hora em cache.
+     */
+    public YoutubeDtos.CanalResponse canal(String canalId) {
+        if (!disponivel()) {
+            throw new com.cauan.vybe.comum.Excecoes.RegraNegocio("A integração com o YouTube não está configurada.");
+        }
+        if (canalId == null || !canalId.matches("[A-Za-z0-9_-]{10,40}")) {
+            throw new com.cauan.vybe.comum.Excecoes.NaoEncontrado("Canal não encontrado");
+        }
+        Instant agora = clock.instant();
+        GuardadoCanal guardado = canais.get(canalId);
+        if (guardado != null && agora.isBefore(guardado.em().plus(VALIDADE_EM_ALTA))) {
+            return guardado.canal();
+        }
+        YoutubeDtos.CanalInfo info = cliente.canal(canalId);
+        List<Video> videos = info.uploads() == null ? List.of() : cliente.videosDaPlaylist(info.uploads(), LIMITE_VIDEOS);
+        YoutubeDtos.CanalResponse canal = new YoutubeDtos.CanalResponse(
+                info.id(),
+                info.nome() == null ? "Canal" : HtmlUtils.htmlUnescape(info.nome()),
+                info.avatarUrl(),
+                info.inscritos(),
+                info.totalVideos(),
+                paraVideos(videos));
+        if (canais.size() >= MAXIMO_NO_CACHE) {
+            canais.clear();
+        }
+        canais.put(canalId, new GuardadoCanal(canal, agora));
+        return canal;
+    }
+
+    private static String limpar(String termo) {
+        String limpo = termo == null ? "" : termo.trim().replaceAll("\\s+", " ");
+        return limpo.length() > 100 ? limpo.substring(0, 100) : limpo;
     }
 
     /** Vídeos do cache (se ainda valem) ou da API. */
-    private List<Video> videos(String termo) {
-        String chave = termo.toLowerCase(Locale.ROOT);
+    private List<Video> doCache(String chaveBruta, Duration validade, java.util.function.Supplier<List<Video>> buscar) {
+        String chave = chaveBruta.toLowerCase(Locale.ROOT);
         Instant agora = clock.instant();
         Guardado guardado = cache.get(chave);
-        if (guardado != null && agora.isBefore(guardado.em().plus(VALIDADE_CACHE))) {
+        if (guardado != null && agora.isBefore(guardado.em().plus(validade))) {
             return guardado.videos();
         }
-        List<Video> novos = cliente.buscar(termo);
+        List<Video> novos = buscar.get();
         if (cache.size() >= MAXIMO_NO_CACHE) {
             cache.clear(); // simples: começa de novo em vez de controlar qual é o mais antigo
         }
         cache.put(chave, new Guardado(novos, agora));
         return novos;
+    }
+
+    /** Só os que podem ser embutidos; o título vem com entidades HTML (&amp;, &#39;) e é decodificado. */
+    static List<VideoResponse> paraVideos(List<Video> videos) {
+        return videos.stream()
+                .filter(v -> v.id() != null && v.incorporavel())
+                .map(v -> new VideoResponse(
+                        v.id(),
+                        v.titulo() == null ? "Sem título" : HtmlUtils.htmlUnescape(v.titulo()),
+                        v.canal() == null ? "" : HtmlUtils.htmlUnescape(v.canal()),
+                        v.canalId(),
+                        v.capaUrl(),
+                        v.duracaoSegundos(),
+                        v.visualizacoes(),
+                        v.curtidas(),
+                        v.publicadoEm()))
+                .toList();
     }
 
     /** Cria ou atualiza as músicas. Vídeos ao vivo, sem duração ou que não podem ser embutidos ficam de fora. */

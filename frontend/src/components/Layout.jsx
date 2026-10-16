@@ -71,6 +71,11 @@ function Lateral() {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/videos">
+            <Icone nome="video" /> Vídeos
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/enviar">
             <Icone nome="enviar" /> Enviar música
           </NavLink>
@@ -150,6 +155,9 @@ function NavMovel() {
       </NavLink>
       <NavLink to="/buscar">
         <Icone nome="buscar" /> Buscar
+      </NavLink>
+      <NavLink to="/videos">
+        <Icone nome="video" /> Vídeos
       </NavLink>
       <NavLink to="/biblioteca">
         <Icone nome="biblioteca" /> Biblioteca

@@ -72,6 +72,20 @@ export const api = {
   // YouTube (a busca exige login, para visitantes não gastarem a cota diária)
   youtubeStatus: () => requisicao('/youtube/status'),
   youtubeBusca: (termo, token) => requisicao(`/youtube/busca?q=${encodeURIComponent(termo)}`, { token }),
+  youtubeVideos: (termo, token) => requisicao(`/youtube/videos?q=${encodeURIComponent(termo)}`, { token }),
+  youtubeEmAlta: (token, categoria) =>
+    requisicao(`/youtube/videos/em-alta${categoria ? `?categoria=${categoria}` : ''}`, { token }),
+  youtubeCanal: (id, token) => requisicao(`/youtube/canais/${encodeURIComponent(id)}`, { token }),
+
+  // Meus vídeos: "Assistir depois", histórico e de onde continuar
+  videosDepois: (token) => requisicao('/eu/videos/assistir-depois', { token }),
+  salvarVideoDepois: (video, token) => requisicao('/eu/videos/assistir-depois', { metodo: 'PUT', corpo: video, token }),
+  removerVideoDepois: (id, token) =>
+    requisicao(`/eu/videos/assistir-depois/${encodeURIComponent(id)}`, { metodo: 'DELETE', token }),
+  videosHistorico: (token) => requisicao('/eu/videos/historico', { token }),
+  limparHistoricoVideos: (token) => requisicao('/eu/videos/historico', { metodo: 'DELETE', token }),
+  progressoVideo: (video, posicaoSegundos, token) =>
+    requisicao('/eu/videos/progresso', { metodo: 'PUT', corpo: { video, posicaoSegundos }, token }),
   jamendoPopulares: () => requisicao('/jamendo/populares'),
 
   // Biblioteca (com login)

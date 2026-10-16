@@ -11,8 +11,8 @@ const API_URL = 'https://www.youtube.com/iframe_api'
 
 let apiPromessa = null
 
-/** Carrega o script da API do YouTube uma vez só. */
-function carregarApi() {
+/** Carrega o script da API do YouTube uma vez só (também usado pela aba Vídeos). */
+export function carregarApi() {
   if (window.YT?.Player) return Promise.resolve()
   if (!apiPromessa) {
     apiPromessa = new Promise((resolve, reject) => {
@@ -158,6 +158,9 @@ export function criarMotorYoutube({ aoMudar, aoTerminar, aoErro }) {
       idAtual = null
       player?.pauseVideo?.()
       caixa?.classList.add('video-youtube--oculto')
+    },
+    pausar() {
+      player?.pauseVideo?.()
     },
     alternar() {
       if (!player?.getPlayerState) return

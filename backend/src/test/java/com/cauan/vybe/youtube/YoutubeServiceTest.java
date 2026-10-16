@@ -139,4 +139,84 @@ class YoutubeServiceTest {
         assertThat(YoutubeCliente.segundos("P0D")).isZero();
         assertThat(YoutubeCliente.segundos("bobagem")).isZero();
     }
+
+    // ---------- Aba Vídeos ----------
+
+    @Test
+    void videosEmGeralNaoGravamNadaEDecodificamOTitulo() {
+        when(cliente.buscar("receita", false, YoutubeService.LIMITE_VIDEOS)).thenReturn(List.of(
+                new Video("receita0001", "Bolo de cenoura &amp; cobertura", "Cozinha d&#39;Ana", null, 600, true),
+                new Video("bloqueado01", "Não embutível", "Canal", null, 300, false)));
+
+        List<YoutubeDtos.VideoResponse> videos = service.buscarVideos("receita");
+
+        assertThat(videos).hasSize(1);
+        assertThat(videos.get(0).titulo()).isEqualTo("Bolo de cenoura & cobertura");
+        assertThat(videos.get(0).canal()).isEqualTo("Cozinha d'Ana");
+        verify(musicas, never()).save(any());
+    }
+
+    @Test
+    void buscaDeVideosEDeMusicasTemCachesSeparados() {
+        when(cliente.buscar("numb")).thenReturn(List.of());
+        when(cliente.buscar("numb", false, YoutubeService.LIMITE_VIDEOS)).thenReturn(List.of());
+
+        service.buscar("numb");
+        service.buscarVideos("numb");
+
+        verify(cliente).buscar("numb");
+        verify(cliente).buscar("numb", false, YoutubeService.LIMITE_VIDEOS);
+    }
+
+    @Test
+    void emAltaFicaUmaHoraEmCache() {
+        when(cliente.populares(YoutubeService.LIMITE_VIDEOS))
+                .thenReturn(List.of(new Video("emalta00001", "Em alta", "Canal", null, 0, true)));
+
+        assertThat(service.videosEmAlta()).extracting(YoutubeDtos.VideoResponse::duracaoSegundos).containsExactly(0);
+        service.videosEmAlta();
+        verify(cliente, times(1)).populares(YoutubeService.LIMITE_VIDEOS);
+
+        instante.set(AGORA.plus(YoutubeService.VALIDADE_EM_ALTA).plus(Duration.ofMinutes(1)));
+        service.videosEmAlta();
+        verify(cliente, times(2)).populares(YoutubeService.LIMITE_VIDEOS);
+    }
+
+    // ---------- Categorias e canal ----------
+
+    @Test
+    void emAltaPorCategoriaTemCachePorCategoria() {
+        when(cliente.populares(YoutubeService.LIMITE_VIDEOS, 20)).thenReturn(List.of());
+        when(cliente.populares(YoutubeService.LIMITE_VIDEOS, 17)).thenReturn(List.of());
+
+        service.videosEmAlta(20);
+        service.videosEmAlta(20);
+        service.videosEmAlta(17);
+
+        verify(cliente, times(1)).populares(YoutubeService.LIMITE_VIDEOS, 20);
+        verify(cliente, times(1)).populares(YoutubeService.LIMITE_VIDEOS, 17);
+    }
+
+    @Test
+    void canalTrazOsDadosEOsVideosRecentesComCache() {
+        String id = "UCabcdefghijklmnopqrstuv";
+        when(cliente.canal(id)).thenReturn(new YoutubeDtos.CanalInfo(id, "Cozinha d&#39;Ana", null, 1200L, 80L, "UUabc"));
+        when(cliente.videosDaPlaylist("UUabc", YoutubeService.LIMITE_VIDEOS)).thenReturn(List.of(
+                new Video("receita0001", "Bolo", "Cozinha", null, 600, true, id, "2026-10-10T12:00:00Z", 5000L, 300L)));
+
+        YoutubeDtos.CanalResponse canal = service.canal(id);
+        service.canal(id);
+
+        assertThat(canal.nome()).isEqualTo("Cozinha d'Ana");
+        assertThat(canal.inscritos()).isEqualTo(1200L);
+        assertThat(canal.videos()).extracting(YoutubeDtos.VideoResponse::visualizacoes).containsExactly(5000L);
+        verify(cliente, times(1)).canal(id);
+    }
+
+    @Test
+    void canalComIdEstranhoNemChamaAApi() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.canal("../x"))
+                .isInstanceOf(com.cauan.vybe.comum.Excecoes.NaoEncontrado.class);
+        verify(cliente, never()).canal(anyString());
+    }
 }

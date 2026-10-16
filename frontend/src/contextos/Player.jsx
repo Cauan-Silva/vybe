@@ -202,6 +202,13 @@ export function PlayerProvider({ children }) {
     else audio.pause()
   }, [carregar])
 
+  /** Pausa o que estiver tocando (usado quando um vídeo começa na aba Vídeos). */
+  const pausar = useCallback(() => {
+    if (motorRef.current === 'spotify') spotifyRef.current.pausar()
+    else if (motorRef.current === 'youtube') youtubeRef.current.pausar()
+    else audioRef.current.pause()
+  }, [])
+
   const buscar = useCallback((segundos) => {
     if (motorRef.current === 'spotify') spotifyRef.current.buscar(segundos)
     else if (motorRef.current === 'youtube') youtubeRef.current.buscar(segundos)
@@ -422,6 +429,7 @@ export function PlayerProvider({ children }) {
       posicao: fila.pos,
       tocarLista,
       alternarPlay,
+      pausar,
       proxima,
       anterior,
       irParaPosicao,
@@ -431,7 +439,7 @@ export function PlayerProvider({ children }) {
       prepararSpotify,
     }),
     [atual, tocando, erro, volume, mudo, aleatorio, repetir, temProxima, proximas, fila.pos,
-      tocarLista, alternarPlay, proxima, anterior, irParaPosicao, adicionarAFila, alternarAleatorio,
+      tocarLista, alternarPlay, pausar, proxima, anterior, irParaPosicao, adicionarAFila, alternarAleatorio,
       alternarRepetir, prepararSpotify],
   )
 
