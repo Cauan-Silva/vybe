@@ -6,6 +6,34 @@ import { useAvisos } from '../contextos/Avisos.jsx'
 import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { useCarregar } from '../utils/useCarregar.js'
+import { definirModoLeve, lerModoLeve } from '../utils/modoLeve.js'
+
+/** Modo leve: vale no programa e na versão web (fica guardado neste computador). */
+function Desempenho() {
+  const [leve, setLeve] = useState(lerModoLeve)
+  return (
+    <section className="config__grupo">
+      <h2 className="config__titulo">Desempenho</h2>
+      <label className="config__chave">
+        <input
+          type="checkbox"
+          checked={leve}
+          onChange={(e) => {
+            setLeve(e.target.checked)
+            definirModoLeve(e.target.checked)
+          }}
+        />
+        <span>
+          <strong>Modo leve</strong>
+          <span className="texto-apoio-claro">
+            Desliga animações e brilhos e atualiza a barra de tempo só uma vez por segundo. Bom para usar o VYBE
+            enquanto joga. Com a janela minimizada ou na bandeja, o VYBE já economiza sozinho.
+          </span>
+        </span>
+      </label>
+    </section>
+  )
+}
 
 /*
  * Configurações do programa: cada pessoa informa as próprias chaves das integrações.
@@ -28,9 +56,12 @@ export default function Configuracoes() {
 
   if (!EH_PROGRAMA) {
     return (
-      <div className="pagina">
+      <div className="pagina pagina--estreita">
         <h1 className="titulo-pagina">Configurações</h1>
-        <p className="estado">Esta tela só existe no programa do VYBE para Windows.</p>
+        <div className="config">
+          <Desempenho />
+        </div>
+        <p className="texto-apoio-claro">As chaves das integrações só podem ser trocadas no programa para Windows.</p>
       </div>
     )
   }
@@ -82,6 +113,10 @@ export default function Configuracoes() {
         O VYBE usa contas gratuitas de desenvolvedor de cada serviço. As chaves ficam só neste computador. Todas são
         opcionais: sem elas, a parte correspondente fica escondida e o resto funciona normalmente.
       </p>
+
+      <div className="config">
+        <Desempenho />
+      </div>
 
       <form className="config" onSubmit={aoEnviar}>
         <fieldset className="config__grupo">

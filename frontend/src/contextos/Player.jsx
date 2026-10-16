@@ -3,6 +3,7 @@ import { api, urlArquivo } from '../services/api.js'
 import { criarMotorSpotify } from '../services/spotifyPlayer.js'
 import { criarMotorYoutube } from '../services/youtubePlayer.js'
 import { embaralhar } from '../utils/formato.js'
+import { lerModoLeve } from '../utils/modoLeve.js'
 import { useAuth } from './Auth.jsx'
 
 /*
@@ -42,7 +43,42 @@ export function PlayerProvider({ children }) {
 
   const [fila, setFilaEstado] = useState(FILA_VAZIA)
   const [tocando, setTocando] = useState(false)
-  const [tempo, setTempo] = useState(0)
+  const [tempo, setTempoEstado] = useState(0)
+
+  /*
+   * Economia de recursos: o tempo de reprodução muda várias vezes por segundo e cada mudança
+   * redesenha a barra do player. Com a janela escondida (minimizada ou na bandeja) não há o
+   * que redesenhar, então guardamos só o último valor; no modo leve, no máximo 1 vez por segundo.
+   */
+  const tempoRef = useRef(0)
+  const ultimoDesenhoRef = useRef(0)
+  const modoLeveRef = useRef(lerModoLeve())
+  const setTempo = useCallback((segundos, forcar = false) => {
+    tempoRef.current = segundos
+    if (!forcar) {
+      if (document.hidden) return
+      const agora = performance.now()
+      if (modoLeveRef.current && agora - ultimoDesenhoRef.current < 1000) return
+      ultimoDesenhoRef.current = agora
+    }
+    setTempoEstado(segundos)
+  }, [])
+
+  useEffect(() => {
+    const aoMudarModo = (e) => {
+      modoLeveRef.current = Boolean(e.detail)
+    }
+    // Ao voltar a aparecer, mostra o tempo atual na hora.
+    const aoMudarVisibilidade = () => {
+      if (!document.hidden) setTempo(tempoRef.current, true)
+    }
+    window.addEventListener('vybe:modo-leve', aoMudarModo)
+    document.addEventListener('visibilitychange', aoMudarVisibilidade)
+    return () => {
+      window.removeEventListener('vybe:modo-leve', aoMudarModo)
+      document.removeEventListener('visibilitychange', aoMudarVisibilidade)
+    }
+  }, [setTempo])
   const [duracao, setDuracao] = useState(0)
   const [volume, setVolume] = useState(lerVolume)
   const [mudo, setMudo] = useState(false)
@@ -132,7 +168,7 @@ export function PlayerProvider({ children }) {
     const youtube = youtubeRef.current
     const volumeAgora = mudoRef.current ? 0 : volumeRef.current
     setErro(null)
-    setTempo(0)
+    setTempo(0, true)
     setDuracao(musica.duracaoSegundos ?? 0)
     fimSpotifyRef.current = false
 
@@ -213,7 +249,7 @@ export function PlayerProvider({ children }) {
     if (motorRef.current === 'spotify') spotifyRef.current.buscar(segundos)
     else if (motorRef.current === 'youtube') youtubeRef.current.buscar(segundos)
     else audioRef.current.currentTime = segundos
-    setTempo(segundos)
+    setTempo(segundos, true)
   }, [])
 
   const proxima = useCallback(
@@ -239,7 +275,7 @@ export function PlayerProvider({ children }) {
           spotifyRef.current.pausar()
           fimSpotifyRef.current = true
           setTocando(false)
-          setTempo(0)
+          setTempo(0, true)
         } else if (motor === 'youtube') {
           setTocando(false) // o vídeo já parou sozinho no fim
         } else {
@@ -338,6 +374,7 @@ export function PlayerProvider({ children }) {
   useEffect(() => {
     if (!tocando) return undefined
     const id = setInterval(() => {
+      if (document.hidden) return // janela escondida: nada para atualizar na tela
       if (motorRef.current === 'spotify') setTempo(spotifyRef.current.posicao())
       if (motorRef.current === 'youtube') {
         setTempo(youtubeRef.current.posicao())

@@ -39,6 +39,11 @@ public class BancoEmbutido {
                 .setDataDirectory(banco)
                 .setCleanDataDirectory(false) // nunca apagar: são os dados da pessoa
                 .setOverrideWorkingDirectory(binarios.toFile()) // binários fora da pasta temporária
+                // Configuração leve: uma pessoa só, poucos dados
+                .setServerConfig("shared_buffers", "32MB")
+                .setServerConfig("max_connections", "20")
+                .setServerConfig("work_mem", "4MB")
+                .setServerConfig("effective_cache_size", "128MB")
                 .start();
     }
 
@@ -48,7 +53,8 @@ public class BancoEmbutido {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(postgres.getJdbcUrl("postgres", "postgres"));
         config.setUsername("postgres");
-        config.setMaximumPoolSize(5);
+        config.setMaximumPoolSize(3);
+        config.setMinimumIdle(1);
         config.setPoolName("vybe-desktop");
         return new HikariDataSource(config);
     }

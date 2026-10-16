@@ -2326,3 +2326,46 @@ a.player-video__canal:hover {
 .config > .botao {
   justify-self: start;
 }
+
+.config__titulo {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.config__chave {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.config__chave input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  accent-color: var(--rotulo);
+}
+
+.config__chave > span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* ---------- Modo leve: sem animações, transições, brilhos e desfoques ---------- */
+
+.modo-leve *,
+.modo-leve *::before,
+.modo-leve *::after {
+  animation: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+}
+
+.modo-leve .anel,
+.modo-leve .anel--tocando,
+.modo-leve .player-video__tela,
+.modo-leve .video-youtube,
+.modo-leve .canal-cabecalho__avatar {
+  box-shadow: none !important;
+  filter: none !important;
+}

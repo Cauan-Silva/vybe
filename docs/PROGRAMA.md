@@ -12,9 +12,10 @@ VYBE.exe (Electron)
  │    ├─ PostgreSQL embutido (dados em %APPDATA%\VYBE\dados\banco)
  │    ├─ entrega as telas (React compilado) em http://127.0.0.1:47823
  │    └─ só aceita conexões do próprio computador
- ├─ espera a API responder e abre a janela em http://127.0.0.1:47823
- ├─ fechar a janela → o VYBE vai para a bandeja e a música continua
- └─ Sair (bandeja) → pede à API para desligar com calma (fecha o banco) e encerra
+ ├─ espera a API responder e abre as telas numa janela do Edge em modo aplicativo
+ │    (sem barra de endereço nem abas, com um perfil só do VYBE)
+ ├─ fechar a janela → desliga tudo (a música para junto com a tela)
+ └─ Sair (bandeja) → fecha a janela, pede à API para desligar com calma (fecha o banco) e encerra
 ```
 
 - **Mesmo código da versão web.** O perfil `desktop` do Spring (`application-desktop.yml`) e o perfil
@@ -26,6 +27,18 @@ VYBE.exe (Electron)
 - **Segurança.** O segredo dos logins é gerado na primeira abertura. O desligamento exige um token aleatório,
   criado a cada abertura. Links externos abrem no navegador, e só o VYBE e o login do Spotify abrem dentro
   da janela.
+
+## Desempenho (para quem usa jogando)
+
+- **Java enxuto:** a API roda com no máximo 256 MB de memória, coleta de lixo simples (`SerialGC`) e
+  compilação rápida (`TieredStopAtLevel=1`). Um arquivo de classes (`vybe-classes.jsa`, CDS) é criado na
+  primeira abertura e deixa as seguintes mais rápidas.
+- **Só o necessário:** a API cria cada parte quando é usada pela primeira vez (`lazy-initialization`), o
+  Tomcat usa poucas threads e o PostgreSQL embutido roda com configuração leve (32 MB de cache).
+- **Janela escondida não gasta:** minimizado ou na bandeja, o VYBE para de redesenhar a barra de tempo; a
+  música continua tocando normalmente.
+- **Modo leve** (em Configurações): desliga animações, brilhos e transições e atualiza a barra de tempo
+  uma vez por segundo.
 
 ## Chaves das integrações
 
@@ -45,10 +58,10 @@ continua usando o secret, que fica só no servidor.
 
 ## Limitações conhecidas
 
-- **O player do Spotify não toca no programa.** O Web Playback SDK exige uma proteção de conteúdo (DRM
-  Widevine) que o Electron comum não tem. As músicas do Spotify aparecem normalmente (mais ouvidos,
-  playlists e busca) e o selo do Spotify abre a música no app oficial. A alternativa seria o Electron da
-  castLabs, com Widevine, que exige assinatura do programa num serviço deles.
+- **Por que o Edge.** O player do Spotify (Web Playback SDK) exige a proteção de conteúdo Widevine, que o
+  Edge tem e o Electron comum não. O Edge já vem em todo Windows 10 e 11 e consome parecido com o
+  Electron (os dois são Chromium). Se o Edge não for encontrado, o VYBE abre na janela do Electron e o
+  Spotify não toca: as músicas do Spotify continuam aparecendo e o selo abre o app oficial.
 - **Modo de desenvolvimento do Spotify:** cada app do Spotify aceita até 5 usuários cadastrados no painel.
   Por isso cada pessoa cria o próprio app.
 - **Visual C++ 2013:** o PostgreSQL embutido pode precisar do "Microsoft Visual C++ 2013 Redistributable

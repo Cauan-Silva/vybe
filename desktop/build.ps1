@@ -1,4 +1,4 @@
-<#
+﻿<#
   Monta o instalador do VYBE para Windows (VYBE Setup x.y.z.exe em desktop\dist).
 
   Uso, na pasta vybe:
@@ -38,13 +38,17 @@ Copy-Item $jar.FullName (Join-Path $saida 'vybe-api.jar')
 Passo '2/5 Telas (React), falando com a API no mesmo endereço'
 Push-Location (Join-Path $raiz 'frontend')
 try {
-    npm ci
-    if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar as dependências do front-end' }
+    # "npm install" (e não "npm ci") para não apagar a pasta node_modules, que o "npm run dev"
+    # pode estar usando. Se o front-end estiver rodando, pare-o antes (Ctrl+C).
+    npm install
+    if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar as dependências do front-end. Se o "npm run dev" estiver aberto, pare-o com Ctrl+C e rode de novo.' }
     $env:VITE_API_URL = '/api'
+    $env:VITE_PROGRAMA = '1'
     npm run build
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao montar o front-end' }
 } finally {
     Remove-Item Env:VITE_API_URL -ErrorAction SilentlyContinue
+    Remove-Item Env:VITE_PROGRAMA -ErrorAction SilentlyContinue
     Pop-Location
 }
 Copy-Item (Join-Path $raiz 'frontend\dist') (Join-Path $saida 'frontend') -Recurse
@@ -57,7 +61,7 @@ $modulos = @(
     'jdk.management', 'jdk.naming.dns', 'jdk.net', 'jdk.unsupported', 'jdk.zipfs'
 ) -join ','
 & (Join-Path $env:JAVA_HOME 'bin\jlink.exe') --add-modules $modulos --output (Join-Path $saida 'jre') `
-    --strip-debug --no-header-files --no-man-pages --compress=zip-6
+    --strip-debug --no-header-files --no-man-pages --compress=zip-6 --generate-cds-archive
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao gerar o Java enxuto' }
 
 Passo '4/5 Ícone'

@@ -2,8 +2,13 @@
  * VYBE para Windows (Electron).
  *
  * Ao abrir: mostra a tela de abertura, liga a API Java (com o Java e o PostgreSQL que vêm
- * dentro do instalador), espera ela responder e abre a janela com as telas do VYBE, que a
- * própria API entrega em http://127.0.0.1:47823.
+ * dentro do instalador), espera ela responder e abre as telas do VYBE, que a própria API
+ * entrega em http://127.0.0.1:47823.
+ *
+ * As telas abrem numa janela do Microsoft Edge em modo aplicativo (sem barra de endereço nem
+ * abas). Motivo: o player do Spotify exige a proteção de conteúdo Widevine, que o Edge tem e o
+ * Electron comum não. O Edge roda com um perfil só do VYBE, separado do Edge da pessoa.
+ * Sem Edge no computador, o VYBE usa a janela do próprio Electron (aí o Spotify não toca).
  *
  * Ao fechar a janela: o VYBE vai para a bandeja (perto do relógio) e a música continua.
  * Ao sair de verdade (menu da bandeja): pede à API para desligar com calma, para o banco
@@ -32,6 +37,8 @@ const pastaDados = path.join(app.getPath('userData'), 'dados')
 const icone = path.join(recursos, 'icon.png')
 
 let api = null // processo Java
+let edge = null // processo do Edge com as telas (modo aplicativo)
+let modoEdge = false
 let janela = null
 let abertura = null
 let bandeja = null
@@ -77,7 +84,24 @@ function ligarApi() {
     JWT_SEGREDO: segredoJwt(),
   })
 
-  api = spawn(java, ['-Xmx512m', '-jar', path.join(recursos, 'vybe-api.jar'), '--spring.profiles.active=desktop'], {
+  // Java enxuto para quem usa o VYBE jogando: pouca memória, coleta de lixo simples
+  // (um app pequeno não precisa da paralela) e compilação rápida em vez de máxima.
+  // O arquivo .jsa guarda classes já carregadas: da segunda abertura em diante, liga mais rápido.
+  const argumentos = [
+    '-Xms64m',
+    '-Xmx256m',
+    '-Xss512k',
+    '-XX:+UseSerialGC',
+    '-XX:TieredStopAtLevel=1',
+    '-XX:MaxMetaspaceSize=160m',
+    '-XX:ReservedCodeCacheSize=48m',
+    '-XX:+AutoCreateSharedArchive',
+    `-XX:SharedArchiveFile=${path.join(pastaDados, 'vybe-classes.jsa')}`,
+    '-jar',
+    path.join(recursos, 'vybe-api.jar'),
+    '--spring.profiles.active=desktop',
+  ]
+  api = spawn(java, argumentos, {
     env: ambiente,
     windowsHide: true,
   })
@@ -239,7 +263,61 @@ function criarJanela() {
   janela.loadURL(ENDERECO)
 }
 
+// ---------- Edge em modo aplicativo ----------
+
+/** Caminho do msedge.exe, ou null se o Edge não estiver instalado. */
+function encontrarEdge() {
+  if (process.platform !== 'win32' && !process.env.VYBE_EDGE_TESTE) return null
+  const bases = [process.env['ProgramFiles(x86)'], process.env.ProgramFiles, process.env.LOCALAPPDATA]
+  for (const base of bases.filter(Boolean)) {
+    const caminho = path.join(base, 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+    if (fs.existsSync(caminho)) return caminho
+  }
+  return null
+}
+
+function abrirNoEdge() {
+  const executavel = encontrarEdge()
+  const abertoEm = Date.now()
+  const processo = spawn(
+    executavel,
+    [
+      `--app=${ENDERECO}`,
+      // Perfil próprio: não mistura com o Edge da pessoa e fecha junto com a janela do VYBE
+      `--user-data-dir=${path.join(app.getPath('userData'), 'edge')}`,
+      '--window-size=1280,820',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-extensions',
+      '--disable-sync',
+      '--disable-features=msEdgeStartupBoost,msImplicitSignin,msEdgeSidebarV2',
+    ],
+    { windowsHide: false, detached: false },
+  )
+  // Se a janela já está aberta, este novo processo só entrega o pedido ao Edge do VYBE
+  // e sai; seguimos acompanhando o processo principal.
+  const principal = !edge
+  if (principal) edge = processo
+  processo.on('error', () => {
+    if (!principal) return
+    edge = null
+    criarJanela() // não deu para abrir o Edge: usa a janela do Electron
+  })
+  processo.on('exit', () => {
+    if (!principal) return
+    if (edge === processo) edge = null
+    // Fechou a janela do VYBE: sem tela a música para, então desliga tudo e libera a memória.
+    // (Se o Edge saiu em menos de 3 s, ele entregou a janela a outro processo: não dá para
+    // acompanhar, e o VYBE fica na bandeja para ser fechado por lá.)
+    if (!saindo && Date.now() - abertoEm > 3000) app.quit()
+  })
+}
+
 function mostrarJanela() {
+  if (modoEdge) {
+    abrirNoEdge() // abre (ou traz) a janela do VYBE no Edge
+    return
+  }
   if (!janela) return
   if (janela.isMinimized()) janela.restore()
   janela.show()
@@ -280,13 +358,26 @@ app.whenReady().then(async () => {
     return
   }
   criarBandeja()
-  criarJanela()
+  modoEdge = Boolean(encontrarEdge())
+  if (modoEdge) {
+    abrirNoEdge()
+    setTimeout(() => {
+      abertura?.close()
+      abertura = null
+    }, 1500) // dá tempo da janela do Edge aparecer
+  } else {
+    criarJanela()
+  }
 })
 
 app.on('before-quit', (evento) => {
+  saindo = true
+  if (edge) {
+    edge.kill() // fecha a janela do Edge junto
+    edge = null
+  }
   if (!api) return // já desligou: pode sair
   evento.preventDefault()
-  saindo = true
   desligarApi().then(() => app.quit())
 })
 

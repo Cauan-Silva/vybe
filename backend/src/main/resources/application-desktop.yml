@@ -6,6 +6,17 @@ server:
   # Só aceita conexões do próprio computador
   address: 127.0.0.1
   port: ${PORT:47823}
+  # Uma pessoa só usando: poucas threads bastam e gastam menos memória
+  tomcat:
+    threads:
+      max: 16
+      min-spare: 2
+
+spring:
+  main:
+    # Cria cada parte da API só quando ela é usada pela primeira vez: abre mais rápido e
+    # não ocupa memória com o que a pessoa não usa (ex.: Spotify sem estar conectado).
+    lazy-initialization: true
 
 vybe:
   desktop:
