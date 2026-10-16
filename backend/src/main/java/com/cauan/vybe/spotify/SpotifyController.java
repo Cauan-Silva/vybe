@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cauan.vybe.catalogo.CatalogoDtos.MusicaResponse;
+
 import java.util.List;
 
 @RestController
@@ -65,6 +67,13 @@ public class SpotifyController {
     @PostMapping("/playlists/{id}/importar")
     public Importacao importar(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
         return service.importar(UsuarioAtual.id(jwt), id);
+    }
+
+    /** Busca no catálogo do Spotify (vazio se a conta não pode tocar). Ex.: GET /api/spotify/busca?q=numb */
+    @GetMapping("/busca")
+    public List<MusicaResponse> buscar(@RequestParam(value = "q", required = false) String termo,
+                                       @AuthenticationPrincipal Jwt jwt) {
+        return service.buscar(UsuarioAtual.id(jwt), termo);
     }
 
     /** Token para o player do Spotify no navegador (só para contas com a permissão do player). */

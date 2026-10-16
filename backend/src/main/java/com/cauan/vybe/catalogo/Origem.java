@@ -11,5 +11,10 @@ public enum Origem {
      * endereço spotify:track:...); o áudio é tocado pelo player oficial do Spotify no navegador,
      * e só para quem tem conta Premium conectada.
      */
-    SPOTIFY
+    SPOTIFY,
+    /**
+     * Vídeo do YouTube (fase 5). Guardamos os dados e o endereço youtube:ID; quem toca é o
+     * player oficial do YouTube, embutido e visível na tela (exigência das regras do YouTube).
+     */
+    YOUTUBE
 }

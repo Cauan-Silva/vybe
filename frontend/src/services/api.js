@@ -68,6 +68,10 @@ export const api = {
   // Jamendo (catálogo Creative Commons)
   jamendoStatus: () => requisicao('/jamendo/status'),
   jamendoBusca: (termo) => requisicao(`/jamendo/busca?q=${encodeURIComponent(termo)}`),
+
+  // YouTube (a busca exige login, para visitantes não gastarem a cota diária)
+  youtubeStatus: () => requisicao('/youtube/status'),
+  youtubeBusca: (termo, token) => requisicao(`/youtube/busca?q=${encodeURIComponent(termo)}`, { token }),
   jamendoPopulares: () => requisicao('/jamendo/populares'),
 
   // Biblioteca (com login)
@@ -87,6 +91,7 @@ export const api = {
     requisicao(`/spotify/playlists/${encodeURIComponent(id)}/importar`, { metodo: 'POST', token }),
   spotifyMaisOuvidos: (periodo, token) => requisicao(`/spotify/mais-ouvidos?periodo=${periodo}`, { token }),
   spotifyToken: (token) => requisicao('/spotify/token', { token }),
+  spotifyBusca: (termo, token) => requisicao(`/spotify/busca?q=${encodeURIComponent(termo)}`, { token }),
 
   // Playlists (com login)
   playlists: (token) => requisicao('/playlists', { token }),

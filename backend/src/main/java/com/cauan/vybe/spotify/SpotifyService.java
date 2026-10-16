@@ -180,6 +180,24 @@ public class SpotifyService {
         return new MaisOuvidos(artistas, musicas);
     }
 
+    /**
+     * Busca qualquer música no Spotify. Só para quem pode tocar (Premium com a permissão do
+     * player): os resultados entram no catálogo e voltam prontos para o player.
+     * Para os outros, devolve vazio, e a tela simplesmente não mostra a seção.
+     */
+    public List<MusicaResponse> buscar(Long usuarioId, String termo) {
+        String limpo = termo == null ? "" : termo.trim();
+        if (limpo.isEmpty() || !cliente.configurado()) {
+            return List.of();
+        }
+        Optional<SpotifyConta> conta = contas.findByUsuarioId(usuarioId);
+        if (conta.isEmpty() || !conta.get().podeTocar()) {
+            return List.of();
+        }
+        List<Faixa> faixas = comToken(usuarioId, t -> cliente.buscarFaixas(t, cortar(limpo, 100)));
+        return catalogoSpotify.salvar(faixas).stream().filter(java.util.Objects::nonNull).toList();
+    }
+
     // ---------- Player ----------
 
     /**

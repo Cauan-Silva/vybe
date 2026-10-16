@@ -313,4 +313,27 @@ class SpotifyServiceTest {
         assertThat(resultado.musicas().get(0).musica()).isNull();
         verify(catalogoSpotify, never()).salvar(any());
     }
+
+    // ---------- Busca (fase 5) ----------
+
+    @Test
+    void buscaNoSpotifyDevolveMusicasProntasParaTocar() {
+        contaComPlayer();
+        when(cliente.configurado()).thenReturn(true);
+        List<Faixa> achadas = List.of(faixa("Numb", "Linkin Park"), faixa("Sem id", "X"));
+        when(cliente.buscarFaixas("token-valido", "numb")).thenReturn(achadas);
+        when(catalogoSpotify.salvar(achadas)).thenReturn(java.util.Arrays.asList(doSpotify(40L, "Numb", "Linkin Park"), null));
+
+        List<MusicaResponse> resultado = service.buscar(1L, "  numb ");
+
+        assertThat(resultado).extracting(MusicaResponse::id).containsExactly(40L);
+    }
+
+    @Test
+    void buscaSemPermissaoDoPlayerNaoChamaOSpotify() {
+        when(cliente.configurado()).thenReturn(true);
+
+        assertThat(service.buscar(1L, "numb")).isEmpty();
+        verify(cliente, never()).buscarFaixas(anyString(), anyString());
+    }
 }

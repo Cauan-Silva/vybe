@@ -97,6 +97,11 @@ public final class SpotifyApi {
         }
     }
 
+    /** Resposta de /search?type=track: as faixas vêm dentro de "tracks". */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ResultadoBusca(Pagina<Faixa> tracks) {
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Artista(String name, List<Imagem> images, @JsonProperty("external_urls") Links links) {
     }

@@ -51,7 +51,7 @@ public class Musica {
     @Column(name = "tamanho_bytes")
     private Long tamanhoBytes;
 
-    /** JAMENDO: endereço do áudio no servidor externo. SPOTIFY: o endereço spotify:track:... */
+    /** JAMENDO: endereço do áudio no servidor externo. SPOTIFY: spotify:track:... YOUTUBE: youtube:ID */
     @Column(name = "url_externa", length = 500)
     private String urlExterna;
 

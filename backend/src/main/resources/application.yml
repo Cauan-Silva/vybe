@@ -40,6 +40,9 @@ vybe:
     client-secret: ${SPOTIFY_CLIENT_SECRET:}
     # O Spotify não aceita "localhost": tem que ser 127.0.0.1 (igual ao cadastrado no painel).
     redirect-uri: ${SPOTIFY_REDIRECT_URI:http://127.0.0.1:8080/api/spotify/callback}
+  youtube:
+    # Chave da YouTube Data API v3 (console.cloud.google.com). Vazio = integração desligada.
+    api-key: ${YOUTUBE_API_KEY:}
   streaming:
     # Tamanho máximo de cada pedaço de áudio enviado ao navegador (1 MB)
     bloco-bytes: 1048576

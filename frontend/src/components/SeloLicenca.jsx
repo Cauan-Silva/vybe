@@ -2,9 +2,11 @@
  * Crédito da origem da música, ao lado do nome do artista:
  * - Jamendo: selo "CC" que leva à licença Creative Commons (dar o crédito é condição de uso).
  * - Spotify: selo que leva à faixa no Spotify (as regras do Spotify pedem o link de volta).
+ * - YouTube: selo que leva ao vídeo no YouTube.
  */
 export default function SeloLicenca({ musica }) {
   if (musica.origem === 'SPOTIFY') return <SeloSpotify musica={musica} />
+  if (musica.origem === 'YOUTUBE') return <SeloYoutube musica={musica} />
   if (musica.origem !== 'JAMENDO') return null
   const titulo = 'Do Jamendo, sob licença Creative Commons'
   return musica.licencaUrl ? (
@@ -47,6 +49,32 @@ function SeloSpotify({ musica }) {
     </a>
   ) : (
     <span className="selo-spotify" title={titulo}>
+      {marca}
+    </span>
+  )
+}
+
+function SeloYoutube({ musica }) {
+  const titulo = 'Vídeo do YouTube'
+  const marca = (
+    <svg viewBox="0 0 24 24" width="9" height="9" aria-hidden="true" fill="currentColor">
+      <path d="M8 5.5v13l11-6.5z" />
+    </svg>
+  )
+  return musica.paginaUrl ? (
+    <a
+      className="selo-youtube"
+      href={musica.paginaUrl}
+      target="_blank"
+      rel="noreferrer"
+      title={titulo}
+      aria-label={`${titulo} (abre no YouTube)`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {marca}
+    </a>
+  ) : (
+    <span className="selo-youtube" title={titulo}>
       {marca}
     </span>
   )

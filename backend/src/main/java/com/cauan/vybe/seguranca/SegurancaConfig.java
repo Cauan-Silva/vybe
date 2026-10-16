@@ -43,7 +43,7 @@ public class SegurancaConfig {
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/musicas/**", "/api/artistas/**",
-                                "/api/albuns/**", "/api/busca", "/api/jamendo/**").permitAll()
+                                "/api/albuns/**", "/api/busca", "/api/jamendo/**", "/api/youtube/status").permitAll()
                         // O Spotify redireciona o navegador para cá, sem o token do VYBE.
                         // Quem é o usuário vem do parâmetro "state" (veja SpotifyEstados).
                         .requestMatchers(HttpMethod.GET, "/api/spotify/callback").permitAll()

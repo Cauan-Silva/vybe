@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api, urlArquivo } from '../services/api.js'
 import { criarMotorSpotify } from '../services/spotifyPlayer.js'
+import { criarMotorYoutube } from '../services/youtubePlayer.js'
 import { embaralhar } from '../utils/formato.js'
 import { useAuth } from './Auth.jsx'
 
@@ -11,9 +12,9 @@ import { useAuth } from './Auth.jsx'
  * A fila guarda a lista original (musicas), a ordem de reprodução (ordem, que é
  * embaralhada no modo aleatório) e a posição atual dentro dessa ordem (pos).
  *
- * Músicas com origem SPOTIFY não usam o <audio>: quem toca é o player oficial do
- * Spotify (services/spotifyPlayer.js). O "motor" diz qual dos dois está no comando;
- * os controles (play, pausa, pular, volume, barra de tempo) são os mesmos para os dois.
+ * Músicas do Spotify e do YouTube não usam o <audio>: quem toca é o player oficial de cada
+ * um (services/spotifyPlayer.js e services/youtubePlayer.js). O "motor" diz qual dos três
+ * está no comando; os controles (play, pausa, pular, volume, barra de tempo) são os mesmos.
  *
  * O tempo de reprodução fica num contexto separado: ele muda várias vezes por
  * segundo e só a barra do player precisa dele, então as listas não re-renderizam à toa.
@@ -60,7 +61,7 @@ export function PlayerProvider({ children }) {
   const volumeRef = useRef(volume)
   const mudoRef = useRef(false)
   const proximaRef = useRef(() => {})
-  const motorRef = useRef('audio') // 'audio' | 'spotify'
+  const motorRef = useRef('audio') // 'audio' | 'spotify' | 'youtube'
   const fimSpotifyRef = useRef(false) // a última música do Spotify da fila acabou
 
   // Token do Spotify para o player, guardado até perto de vencer.
@@ -93,6 +94,27 @@ export function PlayerProvider({ children }) {
       },
     })
   }
+  const youtubeRef = useRef(null)
+  if (youtubeRef.current === null) {
+    youtubeRef.current = criarMotorYoutube({
+      aoMudar: ({ tocando: t, posicao, duracao: d }) => {
+        if (motorRef.current !== 'youtube') return
+        setTocando(t)
+        setTempo(posicao)
+        if (d > 0) setDuracao(d)
+        if (t) setErro(null)
+      },
+      aoTerminar: () => {
+        if (motorRef.current === 'youtube') proximaRef.current(true)
+      },
+      aoErro: (mensagem) => {
+        if (motorRef.current !== 'youtube') return
+        setErro(mensagem)
+        setTocando(false)
+      },
+    })
+  }
+
   useEffect(() => {
     repetirRef.current = repetir
   }, [repetir])
@@ -107,23 +129,34 @@ export function PlayerProvider({ children }) {
   const carregar = useCallback((musica) => {
     const audio = audioRef.current
     const spotify = spotifyRef.current
+    const youtube = youtubeRef.current
+    const volumeAgora = mudoRef.current ? 0 : volumeRef.current
     setErro(null)
     setTempo(0)
     setDuracao(musica.duracaoSegundos ?? 0)
     fimSpotifyRef.current = false
 
-    if (musica.origem === 'SPOTIFY') {
-      motorRef.current = 'spotify'
+    const novo = musica.origem === 'SPOTIFY' ? 'spotify' : musica.origem === 'YOUTUBE' ? 'youtube' : 'audio'
+    const antigo = motorRef.current
+    if (antigo === 'spotify' && novo !== 'spotify') spotify.parar()
+    if (antigo === 'youtube' && novo !== 'youtube') youtube.parar()
+    motorRef.current = novo // antes de pausar o <audio>, para o evento "pause" dele ser ignorado
+
+    const falhou = (motor) => (e) => {
+      if (motorRef.current !== motor) return
+      setErro(e.message)
+      setTocando(false)
+    }
+
+    if (novo === 'spotify') {
       audio.pause()
       setTocando(false)
-      spotify.tocar(musica.audioUrl, mudoRef.current ? 0 : volumeRef.current).catch((e) => {
-        if (motorRef.current !== 'spotify') return
-        setErro(e.message)
-        setTocando(false)
-      })
+      spotify.tocar(musica.audioUrl, volumeAgora).catch(falhou('spotify'))
+    } else if (novo === 'youtube') {
+      audio.pause()
+      setTocando(false)
+      youtube.tocar(musica.audioUrl.replace(/^youtube:/, ''), volumeAgora).catch(falhou('youtube'))
     } else {
-      if (motorRef.current === 'spotify') spotify.parar()
-      motorRef.current = 'audio'
       audio.src = urlArquivo(musica.audioUrl)
       audio.play().catch(() => {
         // O navegador pode bloquear o play automático; o botão continua funcionando.
@@ -161,12 +194,17 @@ export function PlayerProvider({ children }) {
       else spotifyRef.current.alternar()
       return
     }
+    if (motorRef.current === 'youtube') {
+      youtubeRef.current.alternar()
+      return
+    }
     if (audio.paused) audio.play().catch(() => {})
     else audio.pause()
   }, [carregar])
 
   const buscar = useCallback((segundos) => {
     if (motorRef.current === 'spotify') spotifyRef.current.buscar(segundos)
+    else if (motorRef.current === 'youtube') youtubeRef.current.buscar(segundos)
     else audioRef.current.currentTime = segundos
     setTempo(segundos)
   }, [])
@@ -176,9 +214,9 @@ export function PlayerProvider({ children }) {
       const f = filaRef.current
       const audio = audioRef.current
       if (f.pos < 0) return
-      const noSpotify = motorRef.current === 'spotify'
+      const motor = motorRef.current
       if (automatico && repetirRef.current === 'uma') {
-        if (noSpotify) {
+        if (motor !== 'audio') {
           irPara({ ...f })
         } else {
           audio.currentTime = 0
@@ -190,11 +228,13 @@ export function PlayerProvider({ children }) {
         irPara({ ...f, pos: 0 })
       } else if (automatico) {
         // Fim da fila: para tudo (no Spotify, também a reprodução automática dele).
-        if (noSpotify) {
+        if (motor === 'spotify') {
           spotifyRef.current.pausar()
           fimSpotifyRef.current = true
           setTocando(false)
           setTempo(0)
+        } else if (motor === 'youtube') {
+          setTocando(false) // o vídeo já parou sozinho no fim
         } else {
           audio.currentTime = 0 // volta ao começo da última música, pausada
         }
@@ -206,7 +246,13 @@ export function PlayerProvider({ children }) {
   const anterior = useCallback(() => {
     const f = filaRef.current
     if (f.pos < 0) return
-    const posicao = motorRef.current === 'spotify' ? spotifyRef.current.posicao() : audioRef.current.currentTime
+    const motor = motorRef.current
+    const posicao =
+      motor === 'spotify'
+        ? spotifyRef.current.posicao()
+        : motor === 'youtube'
+          ? youtubeRef.current.posicao()
+          : audioRef.current.currentTime
     // Como nos players de verdade: depois de 3 s, "anterior" recomeça a música atual.
     if (posicao > 3 || f.pos === 0) buscar(0)
     else irPara({ ...f, pos: f.pos - 1 })
@@ -281,11 +327,16 @@ export function PlayerProvider({ children }) {
     }
   }, [])
 
-  // O Spotify não avisa o tempo continuamente: a barra é atualizada aqui enquanto toca.
+  // Spotify e YouTube não avisam o tempo continuamente: a barra é atualizada aqui enquanto toca.
   useEffect(() => {
     if (!tocando) return undefined
     const id = setInterval(() => {
       if (motorRef.current === 'spotify') setTempo(spotifyRef.current.posicao())
+      if (motorRef.current === 'youtube') {
+        setTempo(youtubeRef.current.posicao())
+        const d = youtubeRef.current.duracao()
+        if (d > 0) setDuracao(d)
+      }
     }, 500)
     return () => clearInterval(id)
   }, [tocando])
@@ -321,6 +372,7 @@ export function PlayerProvider({ children }) {
     volumeRef.current = volume
     mudoRef.current = mudo
     spotifyRef.current.volume(mudo ? 0 : volume)
+    youtubeRef.current.volume(mudo ? 0 : volume)
     audioRef.current.volume = volume
     audioRef.current.muted = mudo
     try {

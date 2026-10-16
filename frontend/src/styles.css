@@ -1876,3 +1876,91 @@ a.selo-spotify:focus-visible {
 .ranking--atual .ranking__icone {
   color: var(--rotulo);
 }
+
+/* ---------- Fase 5: YouTube ---------- */
+
+.selo-youtube {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 0.8125rem;
+  border-radius: 3px;
+  background: var(--texto-suave);
+  color: var(--fundo);
+  text-decoration: none;
+}
+
+a.selo-youtube:hover,
+a.selo-youtube:focus-visible {
+  background: #ff3d3d; /* vermelho do YouTube, só no destaque do crédito */
+  color: #fff;
+}
+
+/*
+ * Janelinha do vídeo. As regras do YouTube pedem o player visível, com pelo menos
+ * 200×200 px, enquanto toca; por isso a altura nunca fica abaixo de 200 px.
+ */
+.video-youtube {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--altura-player) + 1rem);
+  z-index: 40;
+  width: min(356px, calc(100vw - 1.5rem));
+  height: 200px;
+  border-radius: var(--raio);
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.6), 0 0 0 1px color-mix(in srgb, var(--rotulo) 40%, transparent);
+}
+
+.video-youtube--grande {
+  width: min(640px, calc(100vw - 1.5rem));
+  height: min(360px, calc(100dvh - var(--altura-player) - 3rem));
+}
+
+.video-youtube--oculto {
+  display: none;
+}
+
+.video-youtube iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.video-youtube__tamanho {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(5 4 13 / 0.75);
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.video-youtube:hover .video-youtube__tamanho,
+.video-youtube__tamanho:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .video-youtube__tamanho {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 48rem) {
+  /* No celular, acima do player e da navegação de baixo. */
+  .video-youtube {
+    right: 0.75rem;
+    bottom: 9.5rem;
+  }
+}

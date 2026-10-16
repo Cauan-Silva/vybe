@@ -12,6 +12,8 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 - **Envio de músicas** com barra de progresso; a duração é lida no navegador e artista/álbum são criados automaticamente (música sem álbum vira single)
 - **Conexão com o Spotify (OAuth):** mostra seus artistas e músicas mais ouvidos e importa suas playlists
 - **Player do Spotify (Web Playback SDK):** com conta Premium, as músicas do Spotify tocam completas no mesmo player do VYBE, com fila, aleatório, repetir e volume
+- **Busca no Spotify:** qualquer música do catálogo do Spotify, não só as das suas playlists
+- **YouTube (API oficial):** busca vídeos de música e toca no player oficial do YouTube, numa janelinha visível no canto da tela
 - **Contas** com cadastro e login (JWT), **curtidas**, **playlists** privadas e **tocadas recentemente**
 - **Busca** por título, artista e álbum, nas suas músicas e no catálogo do Jamendo
 - **Catálogo Creative Commons do Jamendo** integrado: as faixas aparecem na busca e em "Em alta no Jamendo", e funcionam como as enviadas (curtir, playlist, fila), com selo e link da licença
@@ -21,7 +23,7 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 
 - **Back-end:** Java 21, Spring Boot 3.5 (Web, Data JPA, Validation, Security), JWT, Flyway, PostgreSQL
 - **Front-end:** React 19, React Router, Vite
-- **Testes:** JUnit 5, Mockito, AssertJ (47 testes, incluindo streaming, Jamendo e a integração com o Spotify)
+- **Testes:** JUnit 5, Mockito, AssertJ (58 testes, incluindo streaming, Jamendo e a integração com o Spotify)
 
 ## Como rodar no seu computador
 
@@ -95,6 +97,9 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET | `/api/spotify/playlists`, `/api/spotify/mais-ouvidos?periodo=` | login | Playlists e mais ouvidos |
 | POST | `/api/spotify/playlists/{id}/importar` | login | Importa uma playlist |
 | GET | `/api/spotify/token` | login | Token do player do Spotify no navegador |
+| GET | `/api/spotify/busca?q=` | login | Busca no catálogo do Spotify (só com o player liberado) |
+| GET | `/api/youtube/status` | público | Se a busca no YouTube está configurada |
+| GET | `/api/youtube/busca?q=` | login | Busca vídeos de música no YouTube |
 | DELETE | `/api/spotify/conexao` | login | Desconecta o Spotify |
 | GET/PUT/DELETE | `/api/eu/curtidas[/{musicaId}]` | login | Curtidas |
 | POST/GET | `/api/eu/reproducoes/{id}`, `/api/eu/recentes` | login | Tocadas recentemente |
@@ -130,6 +135,7 @@ frontend/src/
 - [x] **Jamendo:** catálogo Creative Commons misturado às músicas enviadas
 - [x] **Spotify:** conectar a conta, importar playlists e ver artistas e músicas mais ouvidos
 - [x] **Player do Spotify:** tocar as músicas do Spotify (Premium) no player do VYBE
+- [x] **Busca no Spotify e YouTube:** qualquer música do Spotify e vídeos de música do YouTube
 - [ ] Guardar os arquivos num serviço de armazenamento (S3/R2) para publicar online, já que o disco de serviços gratuitos é apagado a cada deploy
 
 ## Como funciona a integração com o Jamendo
@@ -148,3 +154,11 @@ O player só funciona com conta Premium, no navegador do computador (o Spotify n
 Regras do Spotify para apps em modo de desenvolvimento (desde fevereiro de 2026): quem cria o app precisa ter Premium, há no máximo 5 usuários, só playlists próprias ou colaborativas podem ser lidas, e o endereço de retorno precisa usar `127.0.0.1` (não `localhost`).
 
 Variáveis da API: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` e, se mudar o endereço, `SPOTIFY_REDIRECT_URI` e `FRONTEND_URL`.
+
+## Como funciona a integração com o YouTube
+
+1. **Busca (YouTube Data API v3):** a API do VYBE chama `search.list` (só vídeos da categoria Música que podem ser embutidos) e depois `videos.list` para pegar duração e miniatura. Cada vídeo vira uma `Musica` com `origem = YOUTUBE` e o endereço `youtube:ID`. Artista e título saem do título do vídeo ("Artista - Música (Official Video)") ou, sem o separador, do nome do canal.
+2. **Cota:** o Google dá 10.000 unidades por dia, e cada busca custa cerca de 101, ou seja, umas 100 buscas por dia. Por isso a busca exige login, só acontece quando a pessoa aperta Enter ou o botão (não a cada letra), e os resultados ficam 6 horas em cache na memória.
+3. **Player (IFrame Player API):** o vídeo toca no player oficial do YouTube, numa janelinha no canto da tela que pode ser aumentada. As regras do YouTube exigem o player visível (mínimo 200×200 px) e proíbem tocar só o áudio ou baixar o conteúdo, então o VYBE não faz nada disso. Vídeos ao vivo e os que o dono bloqueou para sites externos ficam fora dos resultados.
+
+Variável da API: `YOUTUBE_API_KEY` (chave criada em console.cloud.google.com, com a YouTube Data API v3 ativada).

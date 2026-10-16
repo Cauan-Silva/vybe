@@ -23,6 +23,7 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -45,6 +46,8 @@ public class SpotifyCliente {
             + "streaming user-read-email user-read-private user-modify-playback-state";
 
     private static final int LIMITE_PLAYLISTS = 200;
+    /** Resultados por busca (10 cabe no limite do modo de desenvolvimento do Spotify). */
+    static final int LIMITE_BUSCA = 10;
 
     /** Quando o Spotify recusa o token (revogado ou expirado sem renovação). */
     public static class TokenRecusado extends RuntimeException {
@@ -143,6 +146,17 @@ public class SpotifyCliente {
             caminho = proximo(pagina.next());
         }
         return faixas;
+    }
+
+    /** Busca no catálogo inteiro do Spotify (só faixas). */
+    public List<Faixa> buscarFaixas(String token, String termo) {
+        String q = URLEncoder.encode(termo, StandardCharsets.UTF_8).replace("+", "%20");
+        SpotifyApi.ResultadoBusca resultado = get(token, "/search?type=track&limit=" + LIMITE_BUSCA + "&q=" + q,
+                new ParameterizedTypeReference<>() {});
+        if (resultado == null || resultado.tracks() == null || resultado.tracks().items() == null) {
+            return List.of();
+        }
+        return resultado.tracks().items().stream().filter(f -> f != null && f.id() != null).toList();
     }
 
     public List<Artista> artistasMaisOuvidos(String token, String periodo) {
