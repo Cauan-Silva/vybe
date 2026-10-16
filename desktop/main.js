@@ -20,6 +20,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
+const ambiente = require('./ambiente.js')
 
 const PORTA = 47823
 const ENDERECO = `http://127.0.0.1:${PORTA}`
@@ -39,6 +40,35 @@ const icone = path.join(recursos, 'icon.png')
 let api = null // processo Java
 let edge = null // processo do Edge com as telas (modo aplicativo)
 let modoEdge = false
+
+/** Log do programa (luz ambiente, Edge...) em dados/logs/programa.log, para diagnóstico. */
+function registrar(mensagem) {
+  try {
+    fs.mkdirSync(path.join(pastaDados, 'logs'), { recursive: true })
+    fs.appendFileSync(path.join(pastaDados, 'logs', 'programa.log'), `${new Date().toISOString()} ${mensagem}\n`)
+  } catch {
+    // sem log: segue a vida
+  }
+}
+let desligarLuz = null // para a luz ambiente em tempo real
+
+/** JPEG da foto da área do vídeo → pixels (BGRA no Windows). */
+/** JPEG -> pixels; "recorte" (em proporção da imagem, 0 a 1) pega só a área do vídeo. */
+function decodificarJpeg(buffer, recorte) {
+  let imagem = nativeImage.createFromBuffer(buffer)
+  if (imagem.isEmpty()) return null
+  if (recorte) {
+    const { width, height } = imagem.getSize()
+    const x = Math.max(0, Math.min(width - 1, Math.round(recorte.x * width)))
+    const y = Math.max(0, Math.min(height - 1, Math.round(recorte.y * height)))
+    const w = Math.max(1, Math.min(width - x, Math.round(recorte.w * width)))
+    const h = Math.max(1, Math.min(height - y, Math.round(recorte.h * height)))
+    imagem = imagem.crop({ x, y, width: w, height: h })
+  }
+  if (imagem.getSize().width > 64) imagem = imagem.resize({ width: 64 })
+  const { width, height } = imagem.getSize()
+  return { pixels: imagem.toBitmap(), largura: width, altura: height, ordem: 'bgra' }
+}
 let janela = null
 let abertura = null
 let bandeja = null
@@ -261,6 +291,7 @@ function criarJanela() {
   })
 
   janela.loadURL(ENDERECO)
+  desligarLuz = ambiente.ligarComElectron({ webContents: janela.webContents, registrar })
 }
 
 // ---------- Edge em modo aplicativo ----------
@@ -278,6 +309,7 @@ function encontrarEdge() {
 
 function abrirNoEdge() {
   const executavel = encontrarEdge()
+  registrar(`abrindo no Edge: ${executavel}`)
   const abertoEm = Date.now()
   const processo = spawn(
     executavel,
@@ -291,13 +323,24 @@ function abrirNoEdge() {
       '--disable-extensions',
       '--disable-sync',
       '--disable-features=msEdgeStartupBoost,msImplicitSignin,msEdgeSidebarV2',
+      // Canal privado com a janela (luz ambiente em tempo real): fd 3 e 4, sem porta aberta
+      '--remote-debugging-pipe',
     ],
-    { windowsHide: false, detached: false },
+    { windowsHide: false, detached: false, stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] },
   )
   // Se a janela já está aberta, este novo processo só entrega o pedido ao Edge do VYBE
   // e sai; seguimos acompanhando o processo principal.
   const principal = !edge
-  if (principal) edge = processo
+  if (principal) {
+    edge = processo
+    desligarLuz = ambiente.ligarComEdge({
+      escrita: processo.stdio[3],
+      leitura: processo.stdio[4],
+      endereco: ENDERECO,
+      decodificar: decodificarJpeg,
+      registrar,
+    })
+  }
   processo.on('error', () => {
     if (!principal) return
     edge = null
@@ -305,6 +348,7 @@ function abrirNoEdge() {
   })
   processo.on('exit', () => {
     if (!principal) return
+    desligarLuz?.()
     if (edge === processo) edge = null
     // Fechou a janela do VYBE: sem tela a música para, então desliga tudo e libera a memória.
     // (Se o Edge saiu em menos de 3 s, ele entregou a janela a outro processo: não dá para

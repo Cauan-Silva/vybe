@@ -4,13 +4,17 @@ import { useAuth } from '../contextos/Auth.jsx'
 import { useAvisos } from '../contextos/Avisos.jsx'
 import { useBiblioteca } from '../contextos/Biblioteca.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
+import { usePreferencias } from '../contextos/Preferencias.jsx'
+import { urlArquivo } from '../services/api.js'
 import { NOME_APP } from '../config.js'
 import Capa from './Capa.jsx'
 import Icone from './Icone.jsx'
 import PlayerBar from './PlayerBar.jsx'
 
 export default function Layout() {
-  const { alternarPlay } = usePlayer()
+  const { alternarPlay, atual } = usePlayer()
+  const { luzDinamica } = usePreferencias()
+  const capaAtual = luzDinamica && atual?.capaUrl ? urlArquivo(atual.capaUrl) : null
 
   // Barra de espaço = tocar/pausar, a não ser que a pessoa esteja digitando ou num botão.
   useEffect(() => {
@@ -29,6 +33,10 @@ export default function Layout() {
     <div className="app">
       <Lateral />
       <main className="principal" id="conteudo">
+        {/* Luz dinâmica: a capa da música atual, bem desfocada, tinge o topo da página */}
+        {capaAtual && (
+          <div className="luz-dinamica" aria-hidden="true" style={{ backgroundImage: `url("${capaAtual}")` }} />
+        )}
         <Outlet />
       </main>
       <PlayerBar />

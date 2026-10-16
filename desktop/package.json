@@ -24,13 +24,26 @@
     "files": [
       "main.js",
       "preload.js",
-      "splash.html"
+      "splash.html",
+      "ambiente.js"
     ],
     "extraResources": [
-      { "from": "build/jre", "to": "jre" },
-      { "from": "build/vybe-api.jar", "to": "vybe-api.jar" },
-      { "from": "build/frontend", "to": "frontend" },
-      { "from": "build/icon.png", "to": "icon.png" }
+      {
+        "from": "build/jre",
+        "to": "jre"
+      },
+      {
+        "from": "build/vybe-api.jar",
+        "to": "vybe-api.jar"
+      },
+      {
+        "from": "build/frontend",
+        "to": "frontend"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
     ],
     "win": {
       "target": "nsis",

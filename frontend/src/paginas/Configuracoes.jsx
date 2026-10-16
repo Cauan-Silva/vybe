@@ -6,32 +6,148 @@ import { useAvisos } from '../contextos/Avisos.jsx'
 import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { useCarregar } from '../utils/useCarregar.js'
-import { definirModoLeve, lerModoLeve } from '../utils/modoLeve.js'
+import { TEMAS, usePreferencias } from '../contextos/Preferencias.jsx'
 
-/** Modo leve: vale no programa e na versão web (fica guardado neste computador). */
-function Desempenho() {
-  const [leve, setLeve] = useState(lerModoLeve)
+/** Aparência e desempenho: valem no programa e na versão web (ficam guardados neste computador). */
+function Aparencia() {
+  const p = usePreferencias()
+
   return (
-    <section className="config__grupo">
-      <h2 className="config__titulo">Desempenho</h2>
-      <label className="config__chave">
-        <input
-          type="checkbox"
-          checked={leve}
-          onChange={(e) => {
-            setLeve(e.target.checked)
-            definirModoLeve(e.target.checked)
-          }}
-        />
-        <span>
-          <strong>Modo leve</strong>
-          <span className="texto-apoio-claro">
-            Desliga animações e brilhos e atualiza a barra de tempo só uma vez por segundo. Bom para usar o VYBE
-            enquanto joga. Com a janela minimizada ou na bandeja, o VYBE já economiza sozinho.
+    <>
+      <section className="config__grupo">
+        <h2 className="config__titulo">Tema</h2>
+        <div className="temas" role="group" aria-label="Tema">
+          {TEMAS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="tema"
+              aria-pressed={p.tema === t.id}
+              onClick={() => p.alterar('tema', t.id)}
+            >
+              <span className="tema__amostra" aria-hidden="true">
+                {t.cores.map((cor) => (
+                  <span key={cor} style={{ background: cor }} />
+                ))}
+              </span>
+              {t.nome}
+            </button>
+          ))}
+        </div>
+
+        <div className="config__linha">
+          <span>
+            <strong>Tamanho do texto</strong>
           </span>
-        </span>
-      </label>
-    </section>
+          <div className="alternador" role="group" aria-label="Tamanho do texto">
+            <button type="button" aria-pressed={p.texto === 'normal'} onClick={() => p.alterar('texto', 'normal')}>
+              Normal
+            </button>
+            <button type="button" aria-pressed={p.texto === 'grande'} onClick={() => p.alterar('texto', 'grande')}>
+              Grande
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="config__grupo">
+        <h2 className="config__titulo">Efeitos de luz</h2>
+        <label className="config__chave">
+          <input type="checkbox" checked={p.luzDinamica} onChange={(e) => p.alterar('luzDinamica', e.target.checked)} />
+          <span>
+            <strong>Luz dinâmica</strong>
+            <span className="texto-apoio-claro">
+              O topo das páginas ganha as cores da capa da música que está tocando.
+            </span>
+          </span>
+        </label>
+
+        <label className="config__chave">
+          <input type="checkbox" checked={p.luzAmbiente} onChange={(e) => p.alterar('luzAmbiente', e.target.checked)} />
+          <span>
+            <strong>Luz ambiente nos vídeos</strong>
+            <span className="texto-apoio-claro">
+              Um brilho com as cores do vídeo envolve o player na aba Vídeos, como uma luz atrás da TV.
+            </span>
+          </span>
+        </label>
+        {p.luzAmbiente && (
+          <label className="config__chave config__sub">
+            <input
+              type="checkbox"
+              checked={p.ambienteTempoReal}
+              onChange={(e) => p.alterar('ambienteTempoReal', e.target.checked)}
+            />
+            <span>
+              <strong>Acompanhar o vídeo em tempo real</strong>
+              <span className="texto-apoio-claro">
+                A luz muda de cor junto com as cenas. Só funciona no programa para Windows e usa um pouco mais de
+                processador enquanto o vídeo toca; desligado (ou na versão web), usa as cores da miniatura.
+              </span>
+            </span>
+          </label>
+        )}
+        {p.luzAmbiente && (
+          <div className="config__linha">
+            <span>Tamanho do brilho</span>
+            <div className="alternador" role="group" aria-label="Tamanho do brilho">
+              {[
+                ['pequeno', 'Pequeno'],
+                ['medio', 'Médio'],
+                ['grande', 'Grande'],
+              ].map(([valor, nome]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={p.tamanhoAmbiente === valor}
+                  onClick={() => p.alterar('tamanhoAmbiente', valor)}
+                >
+                  {nome}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {p.luzAmbiente && (
+          <div className="config__linha">
+            <span>Intensidade da luz ambiente</span>
+            <div className="alternador" role="group" aria-label="Intensidade da luz ambiente">
+              {[
+                ['suave', 'Suave'],
+                ['media', 'Média'],
+                ['forte', 'Forte'],
+              ].map(([valor, nome]) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={p.intensidadeAmbiente === valor}
+                  onClick={() => p.alterar('intensidadeAmbiente', valor)}
+                >
+                  {nome}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="config__grupo">
+        <h2 className="config__titulo">Desempenho</h2>
+        <label className="config__chave">
+          <input type="checkbox" checked={p.modoLeve} onChange={(e) => p.alterarModoLeve(e.target.checked)} />
+          <span>
+            <strong>Modo leve</strong>
+            <span className="texto-apoio-claro">
+              Desliga animações, brilhos e os efeitos de luz e atualiza a barra de tempo só uma vez por segundo. Bom
+              para usar o VYBE enquanto joga. Com a janela minimizada, o VYBE já economiza sozinho.
+            </span>
+          </span>
+        </label>
+        <button type="button" className="link-botao config__restaurar" onClick={p.restaurar}>
+          Restaurar a aparência padrão
+        </button>
+      </section>
+    </>
   )
 }
 
@@ -59,7 +175,7 @@ export default function Configuracoes() {
       <div className="pagina pagina--estreita">
         <h1 className="titulo-pagina">Configurações</h1>
         <div className="config">
-          <Desempenho />
+          <Aparencia />
         </div>
         <p className="texto-apoio-claro">As chaves das integrações só podem ser trocadas no programa para Windows.</p>
       </div>
@@ -115,7 +231,7 @@ export default function Configuracoes() {
       </p>
 
       <div className="config">
-        <Desempenho />
+        <Aparencia />
       </div>
 
       <form className="config" onSubmit={aoEnviar}>

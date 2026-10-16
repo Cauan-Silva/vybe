@@ -40,6 +40,21 @@ VYBE.exe (Electron)
 - **Modo leve** (em Configurações): desliga animações, brilhos e transições e atualiza a barra de tempo
   uma vez por segundo.
 
+## Luz ambiente em tempo real
+
+Na aba Vídeos, o brilho em volta do player acompanha as cores do vídeo. Como o vídeo vem num player do
+YouTube (outro site), a página não consegue ler os quadros; quem faz isso é o programa (`desktop/ambiente.js`):
+
+1. pergunta à página onde está o vídeo e se ele está tocando (`window.__vybeAmbiente`);
+2. fotografa só essa área, reduzida a 64 px de largura, cerca de 8 vezes por segundo;
+3. calcula a cor média de cada borda (topo, base, esquerda, direita), com um pouco mais de saturação;
+4. devolve as cores à página (`window.__vybeLuz`), que pinta quatro manchas desfocadas com transição suave.
+
+Com o Edge, a conversa usa o protocolo de depuração do Chromium por um canal privado
+(`--remote-debugging-pipe`, sem abrir porta nenhuma); com a janela do Electron, usa `capturePage`.
+Nada é capturado com o vídeo pausado, a janela minimizada ou o player fora da tela, e o Modo leve desliga
+tudo. Na versão web, a luz usa as cores da miniatura do vídeo.
+
 ## Chaves das integrações
 
 No programa, cada pessoa usa as próprias chaves, informadas em **Configurações** (o item aparece no menu

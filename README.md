@@ -14,6 +14,7 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 - **Player do Spotify (Web Playback SDK):** com conta Premium, as músicas do Spotify tocam completas no mesmo player do VYBE, com fila, aleatório, repetir e volume
 - **Busca no Spotify:** qualquer música do catálogo do Spotify, não só as das suas playlists
 - **YouTube (API oficial):** busca vídeos de música e toca no player oficial do YouTube, numa janelinha visível no canto da tela
+- **Aparência:** 5 temas (Neon, Aurora, Oceano, Pôr do sol e Claro), texto maior, Luz dinâmica (o topo da página ganha as cores da capa que está tocando), Luz ambiente nos vídeos e modo leve para quem joga
 - **Programa para Windows:** instalador `.exe` com Java e PostgreSQL embutidos, ícone na bandeja e tela de Configurações para as chaves (veja [docs/PROGRAMA.md](docs/PROGRAMA.md))
 - **Aba Vídeos:** qualquer vídeo do YouTube (não só música), com em alta no Brasil por categoria, página do canal, visualizações e curtidas, "Assistir depois", histórico e continuar de onde parou
 - **Contas** com cadastro e login (JWT), **curtidas**, **playlists** privadas e **tocadas recentemente**

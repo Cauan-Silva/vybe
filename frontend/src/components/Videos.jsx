@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { usePreferencias } from '../contextos/Preferencias.jsx'
 import { carregarApi } from '../services/youtubePlayer.js'
 import { duracao, numeroCompacto, tempoRelativo } from '../utils/formato.js'
 import Icone from './Icone.jsx'
@@ -98,6 +99,12 @@ const TERMINOU = 0
  */
 export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepois, onFechar }) {
   const caixaRef = useRef(null)
+  const palcoRef = useRef(null)
+  const tocandoRef = useRef(false)
+  const { luzAmbiente, intensidadeAmbiente, tamanhoAmbiente, ambienteTempoReal, modoLeve } = usePreferencias()
+  // "viva": o programa está mandando as cores do vídeo em tempo real
+  const [viva, setViva] = useState(false)
+  const vivaRef = useRef(false)
   const onProgressoRef = useRef(onProgresso)
   useEffect(() => {
     onProgressoRef.current = onProgresso
@@ -114,6 +121,9 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
 
     // Entra no histórico assim que abre.
     onProgressoRef.current(video, inicio)
+    tocandoRef.current = false
+    vivaRef.current = false
+    setViva(false)
 
     carregarApi()
       .then(() => {
@@ -129,6 +139,7 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
           playerVars: { autoplay: 1, rel: 0, playsinline: 1, start: Math.floor(inicio) },
           events: {
             onStateChange: (e) => {
+              tocandoRef.current = e.data === TOCANDO
               if (e.data === PAUSADO) salvar()
               else if (e.data === TERMINOU) salvar(true)
             },
@@ -155,6 +166,39 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video.id])
 
+  /*
+   * Luz ambiente em tempo real (só no programa): o programa pergunta onde está o vídeo e se
+   * está tocando (__vybeAmbiente), fotografa essa área e devolve as cores das bordas (__vybeLuz).
+   * Na versão web ninguém chama essas funções, e fica a luz com as cores da miniatura.
+   */
+  useEffect(() => {
+    if (!luzAmbiente || !ambienteTempoReal || modoLeve) return undefined
+    window.__vybeAmbiente = () => {
+      const tela = caixaRef.current
+      if (!tela || document.hidden || !tocandoRef.current) return { ativo: false }
+      const r = tela.getBoundingClientRect()
+      const naTela = r.bottom > 0 && r.top < window.innerHeight
+      return { ativo: naTela, x: r.left, y: Math.max(0, r.top), w: r.width, h: Math.min(r.height, r.bottom) }
+    }
+    window.__vybeLuz = (c) => {
+      const palco = palcoRef.current
+      if (!palco) return
+      const cor = ([r, g, b]) => `rgb(${r} ${g} ${b})`
+      palco.style.setProperty('--luz-topo', cor(c.topo))
+      palco.style.setProperty('--luz-base', cor(c.base))
+      palco.style.setProperty('--luz-esquerda', cor(c.esquerda))
+      palco.style.setProperty('--luz-direita', cor(c.direita))
+      if (!vivaRef.current) {
+        vivaRef.current = true
+        setViva(true)
+      }
+    }
+    return () => {
+      delete window.__vybeAmbiente
+      delete window.__vybeLuz
+    }
+  }, [luzAmbiente, ambienteTempoReal, modoLeve])
+
   const detalhes = [
     Number.isFinite(video.visualizacoes) ? `${numeroCompacto(video.visualizacoes)} de visualizações` : null,
     Number.isFinite(video.curtidas) ? `${numeroCompacto(video.curtidas)} curtidas` : null,
@@ -163,7 +207,29 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
 
   return (
     <section className="player-video" aria-label={`Assistindo: ${video.titulo}`}>
-      <div className="player-video__tela" ref={caixaRef} />
+      <div className="player-video__palco" ref={palcoRef}>
+        {/* Luz que acompanha o vídeo: uma mancha de cor para cada borda, bem desfocada */}
+        {luzAmbiente && viva && (
+          <div className={`luz-viva luz-viva--${intensidadeAmbiente} luz-viva--${tamanhoAmbiente}`} aria-hidden="true">
+            <span className="luz-viva__topo" />
+            <span className="luz-viva__base" />
+            <span className="luz-viva__esquerda" />
+            <span className="luz-viva__direita" />
+          </div>
+        )}
+        {/*
+          Sem o programa (ou até chegarem as primeiras cores), a luz usa as cores da miniatura:
+          o vídeo vem num iframe do YouTube, que a página não consegue ler quadro a quadro.
+        */}
+        {luzAmbiente && !viva && video.capaUrl && (
+          <div
+            className={`luz-ambiente luz-ambiente--${intensidadeAmbiente}`}
+            aria-hidden="true"
+            style={{ backgroundImage: `url("${video.capaUrl}")` }}
+          />
+        )}
+        <div className="player-video__tela" ref={caixaRef} />
+      </div>
       <div className="player-video__info">
         <div>
           <p className="player-video__titulo">{video.titulo}</p>

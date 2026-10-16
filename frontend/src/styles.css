@@ -26,6 +26,7 @@
   --raio: 8px;
   --raio-grande: 14px;
   --altura-player: 5.5rem;
+  --topo: #170f35; /* cor do alto da área de conteúdo */
 
   color-scheme: dark;
 }
@@ -112,7 +113,7 @@ button:disabled {
   grid-row: 1;
   min-height: 0;
   overflow-y: auto;
-  background: linear-gradient(180deg, #170f35 0, var(--painel) 18rem);
+  background: linear-gradient(180deg, var(--topo) 0, var(--painel) 18rem);
   border-radius: var(--raio-grande);
 }
 
@@ -2049,7 +2050,7 @@ a.selo-youtube:focus-visible {
 
 .player-video {
   max-width: 60rem;
-  margin: 1.5rem 0 0.5rem;
+  margin: 1.5rem auto 0.5rem; /* centralizado na página */
 }
 
 .player-video__tela {
@@ -2368,4 +2369,291 @@ a.player-video__canal:hover {
 .modo-leve .canal-cabecalho__avatar {
   box-shadow: none !important;
   filter: none !important;
+}
+
+
+/* ---------- Temas (Configurações → Aparência) ---------- */
+
+[data-tema='aurora'] {
+  --fundo: #030b0a;
+  --painel: #0a1513;
+  --painel-2: #10201d;
+  --painel-3: #183029;
+  --linha: #234238;
+  --texto-suave: #9fc4b8;
+  --texto-fraco: #63887d;
+  --rotulo: #2ef2a6;
+  --rotulo-escuro: #03140d;
+  --violeta: #0f9d8a;
+  --brilho: rgb(46 242 166 / 0.45);
+  --topo: #0b2a24;
+}
+
+[data-tema='oceano'] {
+  --fundo: #030712;
+  --painel: #0a1120;
+  --painel-2: #101a30;
+  --painel-3: #18264a;
+  --linha: #22325e;
+  --texto-suave: #9fb0d6;
+  --texto-fraco: #66779e;
+  --rotulo: #4cc3ff;
+  --rotulo-escuro: #02101a;
+  --violeta: #2f5bf2;
+  --brilho: rgb(76 195 255 / 0.45);
+  --topo: #0d1e45;
+}
+
+[data-tema='por-do-sol'] {
+  --fundo: #0d0507;
+  --painel: #180b10;
+  --painel-2: #221018;
+  --painel-3: #331827;
+  --linha: #47213a;
+  --texto-suave: #d4a9b4;
+  --texto-fraco: #93707a;
+  --rotulo: #ffb347;
+  --rotulo-escuro: #1a0e02;
+  --violeta: #ff4f81;
+  --brilho: rgb(255 179 71 / 0.45);
+  --topo: #3a1222;
+}
+
+[data-tema='claro'] {
+  --fundo: #e9ebf5;
+  --painel: #ffffff;
+  --painel-2: #f2f2fa;
+  --painel-3: #e6e5f3;
+  --linha: #d4d2e8;
+  --texto: #15132b;
+  --texto-suave: #4d4b6b;
+  --texto-fraco: #7b7998;
+  --rotulo: #0874b0;
+  --rotulo-escuro: #ffffff;
+  --violeta: #6b2fe0;
+  --brilho: rgb(8 116 176 / 0.3);
+  --curtida: #d6246e;
+  --erro: #b8321f;
+  --topo: #e2dcfb;
+  color-scheme: light;
+}
+
+/* Texto maior: tudo é medido em rem, então basta aumentar a base */
+html.texto-grande {
+  font-size: 112.5%;
+}
+
+/* ---------- Luz dinâmica: a capa da música atual tinge o topo da página ---------- */
+
+.principal {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden; /* o brilho dos efeitos de luz não cria barra de rolagem lateral */
+}
+
+.luz-dinamica {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 28rem;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  filter: blur(70px) saturate(1.5);
+  opacity: 0.4;
+  transform: scale(1.25);
+  -webkit-mask-image: linear-gradient(180deg, #000 0, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, transparent 100%);
+  pointer-events: none;
+  transition: background-image 0.8s ease, opacity 0.8s ease;
+}
+
+[data-tema='claro'] .luz-dinamica {
+  opacity: 0.3;
+}
+
+/* ---------- Luz ambiente: brilho com as cores do vídeo em volta do player ---------- */
+
+.player-video__palco {
+  position: relative;
+  isolation: isolate;
+}
+
+.player-video__palco .player-video__tela {
+  position: relative;
+}
+
+.luz-ambiente {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--raio);
+  filter: blur(48px) saturate(1.8);
+  opacity: 0.55;
+  transform: scale(1.06);
+  pointer-events: none;
+  animation: respirar 7s ease-in-out infinite;
+}
+
+.luz-ambiente--suave {
+  opacity: 0.32;
+  transform: scale(1.03);
+}
+
+.luz-ambiente--forte {
+  opacity: 0.85;
+  filter: blur(60px) saturate(2.1);
+  transform: scale(1.12);
+}
+
+/* Respira de leve mexendo só no tamanho ("scale" soma com o transform de cada intensidade) */
+@keyframes respirar {
+  50% {
+    scale: 1.035;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luz-ambiente {
+    animation: none;
+  }
+}
+
+/* Modo leve desliga os dois efeitos (o desfoque pesa na placa de vídeo) */
+.modo-leve .luz-dinamica,
+.modo-leve .luz-ambiente {
+  display: none;
+}
+
+/* ---------- Configurações → Aparência ---------- */
+
+.temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.tema {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.625rem;
+  border: 0;
+  border-radius: var(--raio);
+  background: var(--painel-3);
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px var(--linha);
+}
+
+.tema[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--rotulo);
+}
+
+.tema__amostra {
+  display: flex;
+  height: 2.5rem;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tema__amostra span {
+  flex: 1;
+}
+
+.tema__amostra span:first-child {
+  flex: 2;
+}
+
+.config__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.config__restaurar {
+  justify-self: start;
+}
+
+/* ---------- Luz ambiente em tempo real (programa) ---------- */
+
+.luz-viva {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --espalhar: 44px;
+  --desfoque: 56px;
+  --opacidade-luz: 0.7;
+}
+
+.luz-viva span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(var(--desfoque));
+  opacity: var(--opacidade-luz);
+  /* cores mudam suavemente, sem piscar nas trocas de cena */
+  transition: background-color 0.4s linear;
+}
+
+.luz-viva__topo {
+  left: 6%;
+  right: 6%;
+  top: calc(-1 * var(--espalhar));
+  height: 45%;
+  background-color: var(--luz-topo, transparent);
+}
+
+.luz-viva__base {
+  left: 6%;
+  right: 6%;
+  bottom: calc(-1 * var(--espalhar));
+  height: 45%;
+  background-color: var(--luz-base, transparent);
+}
+
+.luz-viva__esquerda {
+  top: 6%;
+  bottom: 6%;
+  left: calc(-1 * var(--espalhar));
+  width: 40%;
+  background-color: var(--luz-esquerda, transparent);
+}
+
+.luz-viva__direita {
+  top: 6%;
+  bottom: 6%;
+  right: calc(-1 * var(--espalhar));
+  width: 40%;
+  background-color: var(--luz-direita, transparent);
+}
+
+.luz-viva--pequeno {
+  --espalhar: 18px;
+  --desfoque: 34px;
+}
+
+.luz-viva--grande {
+  --espalhar: 90px;
+  --desfoque: 84px;
+}
+
+.luz-viva--suave {
+  --opacidade-luz: 0.42;
+}
+
+.luz-viva--forte {
+  --opacidade-luz: 0.95;
+}
+
+.modo-leve .luz-viva {
+  display: none;
+}
+
+.config__sub {
+  margin-left: 2rem;
 }
