@@ -106,7 +106,8 @@ public class SpotifyService {
         if (!cliente.configurado()) {
             throw new Excecoes.RegraNegocio("A integração com o Spotify não está configurada no servidor.");
         }
-        return new UrlAutorizacao(cliente.urlAutorizacao(estados.gerar(usuarioId)));
+        String estado = estados.gerar(usuarioId);
+        return new UrlAutorizacao(cliente.urlAutorizacao(estado, estados.desafio(estado)));
     }
 
     /**
@@ -114,19 +115,19 @@ public class SpotifyService {
      * o endereço da página do VYBE para onde o navegador deve voltar.
      */
     public URI concluir(String codigo, String estado, String erro) {
-        Optional<Long> usuarioId = estados.consumir(estado);
+        Optional<SpotifyEstados.Pedido> pedido = estados.consumir(estado);
         if (erro != null) {
             return voltar("erro", "access_denied".equals(erro)
                     ? "Você cancelou a conexão com o Spotify."
                     : "O Spotify recusou a conexão.");
         }
-        if (usuarioId.isEmpty() || codigo == null || codigo.isBlank()) {
+        if (pedido.isEmpty() || codigo == null || codigo.isBlank()) {
             return voltar("erro", "O pedido de conexão expirou. Tente de novo.");
         }
         try {
-            Token token = cliente.trocarCodigo(codigo);
+            Token token = cliente.trocarCodigo(codigo, pedido.get().verificador());
             Perfil perfil = cliente.perfil(token.accessToken());
-            salvarConta(usuarioId.get(), token, perfil);
+            salvarConta(pedido.get().usuarioId(), token, perfil);
             return voltar("conectado", null);
         } catch (RuntimeException e) {
             log.warn("Falha ao concluir a conexão com o Spotify: {}", e.getMessage());

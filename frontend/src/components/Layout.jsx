@@ -4,7 +4,7 @@ import { useAuth } from '../contextos/Auth.jsx'
 import { useAvisos } from '../contextos/Avisos.jsx'
 import { useBiblioteca } from '../contextos/Biblioteca.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
-import { NOME_APP } from '../config.js'
+import { EH_PROGRAMA, NOME_APP } from '../config.js'
 import Capa from './Capa.jsx'
 import Icone from './Icone.jsx'
 import PlayerBar from './PlayerBar.jsx'
@@ -85,6 +85,13 @@ function Lateral() {
             <Icone nome="conectar" /> Spotify
           </NavLink>
         </li>
+        {EH_PROGRAMA && (
+          <li>
+            <NavLink to="/configuracoes">
+              <Icone nome="engrenagem" /> Configurações
+            </NavLink>
+          </li>
+        )}
       </ul>
 
       <div className="lateral__biblioteca">

@@ -1,9 +1,9 @@
 package com.cauan.vybe.jamendo;
 
 import com.cauan.vybe.comum.Excecoes;
+import com.cauan.vybe.configuracao.Chaves;
 import com.cauan.vybe.jamendo.JamendoDtos.Faixa;
 import com.cauan.vybe.jamendo.JamendoDtos.Resposta;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -23,9 +23,9 @@ public class JamendoCliente {
     private static final int LIMITE = 20;
 
     private final RestClient http;
-    private final String clientId;
+    private final Chaves chaves;
 
-    public JamendoCliente(RestClient.Builder builder, @Value("${vybe.jamendo.client-id:}") String clientId) {
+    public JamendoCliente(RestClient.Builder builder, Chaves chaves) {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(5_000);
         fabrica.setReadTimeout(8_000);
@@ -33,12 +33,16 @@ public class JamendoCliente {
                 .baseUrl("https://api.jamendo.com/v3.0")
                 .requestFactory(fabrica)
                 .build();
-        this.clientId = clientId == null ? "" : clientId.trim();
+        this.chaves = chaves;
     }
 
     /** Sem Client ID configurado, a integração fica desligada (e o app funciona sem ela). */
     public boolean configurado() {
-        return !clientId.isEmpty();
+        return !clientId().isEmpty();
+    }
+
+    private String clientId() {
+        return chaves.valor(Chaves.Chave.JAMENDO_CLIENT_ID);
     }
 
     /** Busca livre em nomes de faixa, álbum, artista e tags. */
@@ -57,7 +61,7 @@ public class JamendoCliente {
             resposta = http.get()
                     .uri(u -> {
                         u.path("/tracks/")
-                                .queryParam("client_id", clientId)
+                                .queryParam("client_id", clientId())
                                 .queryParam("format", "json")
                                 .queryParam("limit", LIMITE)
                                 .queryParam("audioformat", "mp32")

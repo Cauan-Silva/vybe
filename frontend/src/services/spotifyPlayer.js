@@ -33,8 +33,13 @@ function carregarSdk() {
   return sdkPromessa
 }
 
+// No programa (Electron) falta a proteção de conteúdo (DRM) que o player do Spotify exige.
+const NO_PROGRAMA = typeof window !== 'undefined' && Boolean(window.vybeDesktop?.programa)
+
 const MENSAGENS = {
-  initialization_error: 'Este navegador não consegue tocar músicas do Spotify. Tente o Chrome, o Edge ou o Firefox no computador.',
+  initialization_error: NO_PROGRAMA
+    ? 'O programa não consegue tocar músicas do Spotify (o Spotify exige uma proteção que ele não tem). Clique no selo do Spotify, ao lado do artista, para ouvir no app oficial.'
+    : 'Este navegador não consegue tocar músicas do Spotify. Tente o Chrome, o Edge ou o Firefox no computador.',
   authentication_error: 'A conexão com o Spotify expirou. Conecte de novo na página Spotify.',
   account_error: 'Para tocar músicas do Spotify é preciso uma conta Premium.',
   playback_error: 'O Spotify não conseguiu tocar esta música.',

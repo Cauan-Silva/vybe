@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' file:" />
+    <title>VYBE</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #05040d;
+        color: #e9e6ff;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        -webkit-app-region: drag;
+        user-select: none;
+      }
+      main {
+        height: 100%;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 18px;
+      }
+      img {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        box-shadow: 0 0 40px rgba(25, 224, 255, 0.45);
+        animation: pulsar 1.6s ease-in-out infinite;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 0.2em;
+      }
+      p {
+        margin: 0;
+        color: #9a95c2;
+        font-size: 13px;
+      }
+      @keyframes pulsar {
+        50% {
+          box-shadow: 0 0 70px rgba(123, 47, 242, 0.7);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img id="logo" alt="" />
+      <h1>VYBE</h1>
+      <p id="mensagem">Iniciando…</p>
+    </main>
+    <script>
+      const params = new URLSearchParams(location.search)
+      if (params.get('logo')) document.getElementById('logo').src = params.get('logo')
+    </script>
+  </body>
+</html>

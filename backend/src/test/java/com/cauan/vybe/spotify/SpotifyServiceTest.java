@@ -111,7 +111,7 @@ class SpotifyServiceTest {
         URI destino = service.concluir("codigo", "estado-falso", null);
 
         assertThat(destino.toString()).startsWith("http://127.0.0.1:5173/spotify?resultado=erro");
-        verify(cliente, never()).trocarCodigo(anyString());
+        verify(cliente, never()).trocarCodigo(anyString(), anyString());
     }
 
     @Test
@@ -127,7 +127,7 @@ class SpotifyServiceTest {
     void callbackValidoGuardaAContaEVoltaConectado() {
         String estado = estados.gerar(1L);
         when(contas.findByUsuarioId(1L)).thenReturn(Optional.empty());
-        when(cliente.trocarCodigo("codigo")).thenReturn(new Token("novo-access", "novo-refresh", 3600));
+        when(cliente.trocarCodigo(eq("codigo"), anyString())).thenReturn(new Token("novo-access", "novo-refresh", 3600));
         when(cliente.perfil("novo-access")).thenReturn(new SpotifyApi.Perfil("spotify-id", "Cauan"));
 
         URI destino = service.concluir("codigo", estado, null);
@@ -237,7 +237,7 @@ class SpotifyServiceTest {
     void callbackGuardaAsPermissoesConcedidas() {
         String estado = estados.gerar(1L);
         when(contas.findByUsuarioId(1L)).thenReturn(Optional.empty());
-        when(cliente.trocarCodigo("codigo"))
+        when(cliente.trocarCodigo(eq("codigo"), anyString()))
                 .thenReturn(new Token("novo-access", "novo-refresh", 3600, "streaming user-top-read"));
         when(cliente.perfil("novo-access")).thenReturn(new SpotifyApi.Perfil("spotify-id", "Cauan"));
 

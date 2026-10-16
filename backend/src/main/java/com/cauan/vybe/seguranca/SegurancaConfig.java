@@ -47,6 +47,10 @@ public class SegurancaConfig {
                         // O Spotify redireciona o navegador para cá, sem o token do VYBE.
                         // Quem é o usuário vem do parâmetro "state" (veja SpotifyEstados).
                         .requestMatchers(HttpMethod.GET, "/api/spotify/callback").permitAll()
+                        // Programa: o Electron pede o desligamento com um token próprio (veja DesktopController).
+                        .requestMatchers(HttpMethod.POST, "/api/desktop/desligar").permitAll()
+                        // Fora de /api só há as telas do programa (HTML, JS, CSS e imagens); na versão web não há nada.
+                        .requestMatchers(pedido -> !pedido.getRequestURI().startsWith("/api/")).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()));
         return http.build();

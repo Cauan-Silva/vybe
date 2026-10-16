@@ -1,6 +1,7 @@
 package com.cauan.vybe.youtube;
 
 import com.cauan.vybe.comum.Excecoes;
+import com.cauan.vybe.configuracao.Chaves;
 import com.cauan.vybe.youtube.YoutubeDtos.CanalApi;
 import com.cauan.vybe.youtube.YoutubeDtos.CanalInfo;
 import com.cauan.vybe.youtube.YoutubeDtos.ItemBusca;
@@ -11,7 +12,6 @@ import com.cauan.vybe.youtube.YoutubeDtos.RespostaItensPlaylist;
 import com.cauan.vybe.youtube.YoutubeDtos.RespostaVideos;
 import com.cauan.vybe.youtube.YoutubeDtos.Video;
 import com.cauan.vybe.youtube.YoutubeDtos.VideoApi;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -47,19 +47,23 @@ public class YoutubeCliente {
     private static final String PARTES_VIDEO = "snippet,contentDetails,status,statistics";
 
     private final RestClient http;
-    private final String chave;
+    private final Chaves chaves;
 
-    public YoutubeCliente(RestClient.Builder builder, @Value("${vybe.youtube.api-key:}") String chave) {
+    public YoutubeCliente(RestClient.Builder builder, Chaves chaves) {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(5_000);
         fabrica.setReadTimeout(8_000);
         this.http = builder.clone().requestFactory(fabrica).build();
-        this.chave = chave == null ? "" : chave.trim();
+        this.chaves = chaves;
     }
 
     /** Sem chave configurada, a integração fica desligada (e o app funciona sem ela). */
     public boolean configurado() {
-        return !chave.isEmpty();
+        return !chave().isEmpty();
+    }
+
+    private String chave() {
+        return chaves.valor(Chaves.Chave.YOUTUBE_API_KEY);
     }
 
     /** Busca vídeos de música (categoria Música) que podem ser tocados fora do YouTube. */
@@ -216,7 +220,7 @@ public class YoutubeCliente {
     private <T> T get(String caminho, Class<T> tipo) {
         try {
             return http.get()
-                    .uri(URI.create(API + caminho + "&key=" + codificar(chave)))
+                    .uri(URI.create(API + caminho + "&key=" + codificar(chave())))
                     .retrieve()
                     .body(tipo);
         } catch (RestClientResponseException e) {

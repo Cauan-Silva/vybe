@@ -7,6 +7,7 @@ import { useAuth } from '../contextos/Auth.jsx'
 import { useAvisos } from '../contextos/Avisos.jsx'
 import { useBiblioteca } from '../contextos/Biblioteca.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
+import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { plural } from '../utils/formato.js'
 import { useCarregar } from '../utils/useCarregar.js'
@@ -58,6 +59,16 @@ export default function Spotify() {
 }
 
 function NaoConfigurado() {
+  if (EH_PROGRAMA) {
+    return (
+      <div className="painel-info">
+        <p>
+          Para usar o Spotify, informe o Client ID do seu app do Spotify em{' '}
+          <Link to="/configuracoes">Configurações</Link>.
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="painel-info">
       <p>

@@ -13,6 +13,7 @@ import Entrar from './paginas/Entrar.jsx'
 import Spotify from './paginas/Spotify.jsx'
 import Videos from './paginas/Videos.jsx'
 import CanalVideos from './paginas/CanalVideos.jsx'
+import Configuracoes from './paginas/Configuracoes.jsx'
 import NaoEncontrado from './paginas/NaoEncontrado.jsx'
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="spotify" element={<Spotify />} />
         <Route path="videos" element={<Videos />} />
         <Route path="videos/canal/:id" element={<CanalVideos />} />
+        <Route path="configuracoes" element={<Configuracoes />} />
         <Route path="*" element={<NaoEncontrado />} />
       </Route>
     </Routes>

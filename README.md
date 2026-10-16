@@ -14,6 +14,7 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 - **Player do Spotify (Web Playback SDK):** com conta Premium, as músicas do Spotify tocam completas no mesmo player do VYBE, com fila, aleatório, repetir e volume
 - **Busca no Spotify:** qualquer música do catálogo do Spotify, não só as das suas playlists
 - **YouTube (API oficial):** busca vídeos de música e toca no player oficial do YouTube, numa janelinha visível no canto da tela
+- **Programa para Windows:** instalador `.exe` com Java e PostgreSQL embutidos, ícone na bandeja e tela de Configurações para as chaves (veja [docs/PROGRAMA.md](docs/PROGRAMA.md))
 - **Aba Vídeos:** qualquer vídeo do YouTube (não só música), com em alta no Brasil por categoria, página do canal, visualizações e curtidas, "Assistir depois", histórico e continuar de onde parou
 - **Contas** com cadastro e login (JWT), **curtidas**, **playlists** privadas e **tocadas recentemente**
 - **Busca** por título, artista e álbum, nas suas músicas e no catálogo do Jamendo
@@ -24,7 +25,7 @@ App de streaming de música feito do zero: você envia suas faixas, a API entreg
 
 - **Back-end:** Java 21, Spring Boot 3.5 (Web, Data JPA, Validation, Security), JWT, Flyway, PostgreSQL
 - **Front-end:** React 19, React Router, Vite
-- **Testes:** JUnit 5, Mockito, AssertJ (72 testes, incluindo streaming, Jamendo e a integração com o Spotify)
+- **Testes:** JUnit 5, Mockito, AssertJ (78 testes, incluindo streaming, Jamendo e a integração com o Spotify)
 
 ## Como rodar no seu computador
 
@@ -122,11 +123,16 @@ backend/src/main/java/com/cauan/vybe/
 ├── biblioteca/  # curtidas e tocadas recentemente
 ├── catalogo/    # músicas, artistas, álbuns, envio e busca
 ├── comum/       # erros e configuração
+├── configuracao/ # chaves das integrações (ambiente ou tela de Configurações do programa)
 ├── jamendo/     # cliente da API do Jamendo e importação das faixas
 ├── playlist/    # playlists e suas músicas
 ├── seguranca/   # JWT e regras de acesso
-├── spotify/     # OAuth do Spotify, mais ouvidos e importação de playlists
-└── usuario/     # cadastro e login
+├── spotify/     # OAuth do Spotify (com secret ou PKCE), mais ouvidos, importação e player
+├── usuario/     # cadastro e login
+└── youtube/     # busca, aba Vídeos, canais, Assistir depois e histórico
+
+backend/src/desktop/java/   # só no programa (mvn -Pdesktop): banco embutido, telas e desligamento
+desktop/                    # programa Electron: main.js, instalador e build.ps1
 
 frontend/src/
 ├── components/  # player, fila, listas, menus, cartões
@@ -142,6 +148,7 @@ frontend/src/
 - [x] **Spotify:** conectar a conta, importar playlists e ver artistas e músicas mais ouvidos
 - [x] **Player do Spotify:** tocar as músicas do Spotify (Premium) no player do VYBE
 - [x] **Busca no Spotify e YouTube:** qualquer música do Spotify e vídeos de música do YouTube
+- [x] **Programa para Windows:** Electron + API com PostgreSQL embutido, login do Spotify com PKCE
 - [ ] Guardar os arquivos num serviço de armazenamento (S3/R2) para publicar online, já que o disco de serviços gratuitos é apagado a cada deploy
 
 ## Como funciona a integração com o Jamendo

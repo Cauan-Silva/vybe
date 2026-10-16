@@ -1,0 +1,49 @@
+{
+  "name": "vybe-desktop",
+  "productName": "VYBE",
+  "version": "0.1.0",
+  "description": "VYBE para Windows: o app de música e vídeos como programa instalável",
+  "author": "Cauan-Silva",
+  "license": "MIT",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "instalador": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "33.2.0",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.cauan.vybe",
+    "productName": "VYBE",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html"
+    ],
+    "extraResources": [
+      { "from": "build/jre", "to": "jre" },
+      { "from": "build/vybe-api.jar", "to": "vybe-api.jar" },
+      { "from": "build/frontend", "to": "frontend" },
+      { "from": "build/icon.png", "to": "icon.png" }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VYBE",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

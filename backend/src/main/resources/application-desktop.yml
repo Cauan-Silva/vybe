@@ -1,0 +1,24 @@
+# Perfil do programa (Windows). O Electron liga a API com --spring.profiles.active=desktop
+# e passa as variáveis VYBE_DADOS, VYBE_FRONTEND, VYBE_DESKTOP_TOKEN e JWT_SEGREDO.
+# O banco é o PostgreSQL embutido (veja src/desktop/java/.../BancoEmbutido.java).
+
+server:
+  # Só aceita conexões do próprio computador
+  address: 127.0.0.1
+  port: ${PORT:47823}
+
+vybe:
+  desktop:
+    ativo: true
+    # Pasta de dados do usuário (banco, músicas enviadas e capas)
+    dados: ${VYBE_DADOS:${user.home}/.vybe}
+    # Pasta com o React já compilado
+    frontend: ${VYBE_FRONTEND:../frontend/dist}
+    token: ${VYBE_DESKTOP_TOKEN:}
+  cors-origens: http://127.0.0.1:${server.port}
+  frontend-url: http://127.0.0.1:${server.port}
+  armazenamento:
+    pasta: ${vybe.desktop.dados}/arquivos
+  spotify:
+    # No programa o login do Spotify usa PKCE: não precisa (nem deve ter) Client Secret
+    redirect-uri: http://127.0.0.1:${server.port}/api/spotify/callback

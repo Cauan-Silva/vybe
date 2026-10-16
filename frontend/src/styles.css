@@ -2267,3 +2267,62 @@ a.player-video__canal:hover {
   background: var(--painel-3);
   color: var(--texto-suave);
 }
+
+/* ---------- Configurações (programa) ---------- */
+
+.config {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.config__grupo {
+  margin: 0;
+  padding: 1.25rem;
+  border: 0;
+  border-radius: var(--raio);
+  background: var(--painel-2);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.config__grupo legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.config__grupo p {
+  margin: 0;
+}
+
+.config__grupo a {
+  color: var(--rotulo);
+}
+
+.config__copiar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.config__copiar code {
+  padding: 0.375rem 0.625rem;
+  border-radius: 6px;
+  background: var(--painel-3);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.config .campo em {
+  font-style: normal;
+  color: var(--texto-suave);
+  font-weight: 400;
+}
+
+.config > .botao {
+  justify-self: start;
+}

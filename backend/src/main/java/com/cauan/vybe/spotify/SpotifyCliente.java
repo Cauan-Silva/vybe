@@ -1,6 +1,7 @@
 package com.cauan.vybe.spotify;
 
 import com.cauan.vybe.comum.Excecoes;
+import com.cauan.vybe.configuracao.Chaves;
 import com.cauan.vybe.spotify.SpotifyApi.Artista;
 import com.cauan.vybe.spotify.SpotifyApi.Faixa;
 import com.cauan.vybe.spotify.SpotifyApi.ItemPlaylist;
@@ -32,6 +33,10 @@ import java.util.List;
 /**
  * Conversa com o Spotify: login (accounts.spotify.com) e Web API (api.spotify.com).
  * Não guarda nada; quem cuida dos tokens e do banco é o SpotifyService.
+ *
+ * Dois jeitos de logar:
+ * - com Client Secret (versão web): a troca do código usa o secret, que fica só no servidor;
+ * - sem Client Secret (programa): PKCE, com o verifier gerado em SpotifyEstados.
  */
 @Component
 public class SpotifyCliente {
@@ -60,47 +65,67 @@ public class SpotifyCliente {
 
     private final RestClient contas;
     private final RestClient api;
-    private final String clientId;
-    private final String clientSecret;
+    private final Chaves chaves;
     private final String redirectUri;
 
     public SpotifyCliente(RestClient.Builder builder,
-                          @Value("${vybe.spotify.client-id:}") String clientId,
-                          @Value("${vybe.spotify.client-secret:}") String clientSecret,
+                          Chaves chaves,
                           @Value("${vybe.spotify.redirect-uri}") String redirectUri) {
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(5_000);
         fabrica.setReadTimeout(10_000);
         this.contas = builder.clone().baseUrl("https://accounts.spotify.com").requestFactory(fabrica).build();
         this.api = builder.clone().requestFactory(fabrica).build();
-        this.clientId = clientId == null ? "" : clientId.trim();
-        this.clientSecret = clientSecret == null ? "" : clientSecret.trim();
+        this.chaves = chaves;
         this.redirectUri = redirectUri;
     }
 
+    private String clientId() {
+        return chaves.valor(Chaves.Chave.SPOTIFY_CLIENT_ID);
+    }
+
+    private String clientSecret() {
+        return chaves.valor(Chaves.Chave.SPOTIFY_CLIENT_SECRET);
+    }
+
+    /** Basta o Client ID: sem Client Secret, o login usa PKCE. */
     public boolean configurado() {
-        return !clientId.isEmpty() && !clientSecret.isEmpty();
+        return !clientId().isEmpty();
+    }
+
+    /** Sem Client Secret: login com PKCE (programa). */
+    public boolean usaPkce() {
+        return clientSecret().isEmpty();
+    }
+
+    public String redirectUri() {
+        return redirectUri;
     }
 
     /** Página de autorização do Spotify para onde mandamos a pessoa. */
-    public String urlAutorizacao(String estado) {
-        return UriComponentsBuilder.fromUriString("https://accounts.spotify.com/authorize")
-                .queryParam("client_id", clientId)
+    public String urlAutorizacao(String estado, String desafio) {
+        UriComponentsBuilder url = UriComponentsBuilder.fromUriString("https://accounts.spotify.com/authorize")
+                .queryParam("client_id", clientId())
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("scope", ESCOPOS)
-                .queryParam("state", estado)
-                .encode()
-                .build()
-                .toUriString();
+                .queryParam("state", estado);
+        if (usaPkce()) {
+            url.queryParam("code_challenge_method", "S256").queryParam("code_challenge", desafio);
+        }
+        return url.encode().build().toUriString();
     }
 
     /** Troca o código recebido no callback pelos tokens. */
-    public Token trocarCodigo(String codigo) {
+    public Token trocarCodigo(String codigo, String verificador) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "authorization_code");
         form.add("code", codigo);
         form.add("redirect_uri", redirectUri);
+        if (usaPkce()) {
+            form.add("client_id", clientId());
+            form.add("code_verifier", verificador);
+        }
         return pedirToken(form);
     }
 
@@ -109,6 +134,9 @@ public class SpotifyCliente {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "refresh_token");
         form.add("refresh_token", refreshToken);
+        if (usaPkce()) {
+            form.add("client_id", clientId());
+        }
         return pedirToken(form);
     }
 
@@ -172,16 +200,17 @@ public class SpotifyCliente {
     }
 
     private Token pedirToken(MultiValueMap<String, String> form) {
-        String credenciais = Base64.getEncoder()
-                .encodeToString((clientId + ":" + clientSecret).getBytes(StandardCharsets.UTF_8));
         try {
-            return contas.post()
+            RestClient.RequestBodySpec pedido = contas.post()
                     .uri("/api/token")
-                    .header(HttpHeaders.AUTHORIZATION, "Basic " + credenciais)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(form)
-                    .retrieve()
-                    .body(Token.class);
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED);
+            if (!usaPkce()) {
+                // Com secret: o Spotify pede client_id:client_secret no cabeçalho (Basic).
+                String credenciais = Base64.getEncoder()
+                        .encodeToString((clientId() + ":" + clientSecret()).getBytes(StandardCharsets.UTF_8));
+                pedido.header(HttpHeaders.AUTHORIZATION, "Basic " + credenciais);
+            }
+            return pedido.body(form).retrieve().body(Token.class);
         } catch (RestClientResponseException e) {
             if (e.getStatusCode().value() == 400 || e.getStatusCode().value() == 401) {
                 throw new TokenRecusado();

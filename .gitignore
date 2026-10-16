@@ -25,3 +25,8 @@ Thumbs.db
 
 # Variáveis de ambiente
 .env
+
+# Programa (Electron)
+desktop/node_modules/
+desktop/build/
+desktop/dist/

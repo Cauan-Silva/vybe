@@ -81,4 +81,78 @@
             </plugin>
         </plugins>
     </build>
+    <!--
+        Perfil "desktop": a versão instalável (programa para Windows). Rode com "mvn -Pdesktop package".
+        Acrescenta o PostgreSQL embutido (o banco vem dentro do programa) e o código de
+        src/desktop/java. A versão web e o Docker não levam nada disso.
+    -->
+    <profiles>
+        <profile>
+            <id>desktop</id>
+            <dependencyManagement>
+                <dependencies>
+                    <!-- Versão do PostgreSQL que vem embutido -->
+                    <dependency>
+                        <groupId>io.zonky.test.postgres</groupId>
+                        <artifactId>embedded-postgres-binaries-bom</artifactId>
+                        <version>18.3.0</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            <dependencies>
+                <dependency>
+                    <groupId>io.zonky.test</groupId>
+                    <artifactId>embedded-postgres</artifactId>
+                    <version>2.2.2</version>
+                    <!-- Só os binários do Windows: os de Linux e macOS só aumentariam o instalador -->
+                    <exclusions>
+                        <exclusion>
+                            <groupId>io.zonky.test.postgres</groupId>
+                            <artifactId>embedded-postgres-binaries-linux-amd64</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>io.zonky.test.postgres</groupId>
+                            <artifactId>embedded-postgres-binaries-darwin-amd64</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>io.zonky.test.postgres</groupId>
+                            <artifactId>embedded-postgres-binaries-darwin-arm64v8</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>io.zonky.test.postgres</groupId>
+                            <artifactId>embedded-postgres-binaries-linux-arm64v8</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>io.zonky.test.postgres</groupId>
+                    <artifactId>embedded-postgres-binaries-windows-amd64</artifactId>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>codigo-desktop</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/desktop/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

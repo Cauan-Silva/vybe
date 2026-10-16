@@ -4,6 +4,8 @@ import Icone from '../components/Icone.jsx'
 import { GradeVideos, PainelVideo } from '../components/Videos.jsx'
 import { useAuth } from '../contextos/Auth.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
+import { Link } from 'react-router-dom'
+import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { useCarregar } from '../utils/useCarregar.js'
 import { inicioDe, useMeusVideos } from '../utils/useMeusVideos.js'
@@ -58,10 +60,16 @@ export default function Videos() {
       <div className="pagina">
         <h1 className="titulo-pagina">Vídeos</h1>
         <div className="painel-info">
-          <p>
-            A integração com o YouTube não está configurada nesta instalação. Defina a variável{' '}
-            <code>YOUTUBE_API_KEY</code> no servidor e reinicie a API.
-          </p>
+          {EH_PROGRAMA ? (
+            <p>
+              Para assistir vídeos, informe uma chave da API do YouTube em <Link to="/configuracoes">Configurações</Link>.
+            </p>
+          ) : (
+            <p>
+              A integração com o YouTube não está configurada nesta instalação. Defina a variável{' '}
+              <code>YOUTUBE_API_KEY</code> no servidor e reinicie a API.
+            </p>
+          )}
         </div>
       </div>
     )

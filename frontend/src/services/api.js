@@ -105,6 +105,10 @@ export const api = {
     requisicao(`/spotify/playlists/${encodeURIComponent(id)}/importar`, { metodo: 'POST', token }),
   spotifyMaisOuvidos: (periodo, token) => requisicao(`/spotify/mais-ouvidos?periodo=${periodo}`, { token }),
   spotifyToken: (token) => requisicao('/spotify/token', { token }),
+  // Configurações (só no programa para Windows)
+  configuracoes: (token) => requisicao('/configuracoes', { token }),
+  salvarConfiguracoes: (dados, token) => requisicao('/configuracoes', { metodo: 'PUT', corpo: dados, token }),
+
   spotifyBusca: (termo, token) => requisicao(`/spotify/busca?q=${encodeURIComponent(termo)}`, { token }),
 
   // Playlists (com login)
