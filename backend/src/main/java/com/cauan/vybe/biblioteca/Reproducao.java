@@ -34,6 +34,10 @@ public class Reproducao {
     @Column(name = "tocada_em", nullable = false)
     private LocalDateTime tocadaEm;
 
+    /** Quanto foi de fato ouvido; nulo nas reproduções de antes desta coluna existir. */
+    @Column(name = "segundos_ouvidos")
+    private Integer segundosOuvidos;
+
     public Reproducao() {
     }
 
@@ -41,9 +45,12 @@ public class Reproducao {
         this.usuario = usuario;
         this.musica = musica;
         this.tocadaEm = tocadaEm;
+        this.segundosOuvidos = 0;
     }
 
     public Long getId() { return id; }
     public Musica getMusica() { return musica; }
     public LocalDateTime getTocadaEm() { return tocadaEm; }
+    public Integer getSegundosOuvidos() { return segundosOuvidos; }
+    public void setSegundosOuvidos(Integer segundosOuvidos) { this.segundosOuvidos = segundosOuvidos; }
 }

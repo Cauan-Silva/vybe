@@ -32,7 +32,8 @@ async function erroDaResposta(resposta) {
   )
 }
 
-async function requisicao(caminho, { metodo = 'GET', corpo, token } = {}) {
+/** "manter" (keepalive) deixa o pedido terminar mesmo se a página estiver fechando. */
+async function requisicao(caminho, { metodo = 'GET', corpo, token, manter = false } = {}) {
   const headers = {}
   if (corpo !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
@@ -43,6 +44,7 @@ async function requisicao(caminho, { metodo = 'GET', corpo, token } = {}) {
       method: metodo,
       headers,
       body: corpo === undefined ? undefined : JSON.stringify(corpo),
+      keepalive: manter,
     })
   } catch {
     throw new ErroApi('Sem conexão com o servidor. Confira se a API está rodando.', 0)
@@ -86,6 +88,21 @@ export const api = {
   limparHistoricoVideos: (token) => requisicao('/eu/videos/historico', { metodo: 'DELETE', token }),
   progressoVideo: (video, posicaoSegundos, token) =>
     requisicao('/eu/videos/progresso', { metodo: 'PUT', corpo: { video, posicaoSegundos }, token }),
+  // Aba Vídeos personalizada
+  videosParaVoce: (token) => requisicao('/eu/videos/para-voce', { token }),
+  videosInscricoes: (token) => requisicao('/eu/videos/inscricoes', { token }),
+  canaisSeguidos: (token) => requisicao('/eu/videos/canais-seguidos', { token }),
+  seguirCanal: (canal, token) => requisicao('/eu/videos/canais-seguidos', { metodo: 'PUT', corpo: canal, token }),
+  deixarDeSeguir: (id, token) =>
+    requisicao(`/eu/videos/canais-seguidos/${encodeURIComponent(id)}`, { metodo: 'DELETE', token }),
+  interesses: (token) => requisicao('/eu/videos/interesses', { token }),
+  adicionarInteresse: (termo, token) => requisicao('/eu/videos/interesses', { metodo: 'POST', corpo: { termo }, token }),
+  removerInteresse: (id, token) => requisicao(`/eu/videos/interesses/${id}`, { metodo: 'DELETE', token }),
+  videosDoInteresse: (id, token) => requisicao(`/eu/videos/interesses/${id}/videos`, { token }),
+  /** Abriu um vídeo (conta para o "Seu mês"): devolve { id }. */
+  registrarVisualizacao: (video, token) => requisicao('/eu/videos/visualizacoes', { metodo: 'POST', corpo: video, token }),
+  tempoVisualizacao: (id, segundos, token, manter = false) =>
+    requisicao(`/eu/videos/visualizacoes/${id}/tempo`, { metodo: 'PUT', corpo: { segundos }, token, manter }),
   jamendoPopulares: () => requisicao('/jamendo/populares'),
 
   // Biblioteca (com login)
@@ -93,7 +110,11 @@ export const api = {
   idsCurtidos: (token) => requisicao('/eu/curtidas/ids', { token }),
   curtir: (id, token) => requisicao(`/eu/curtidas/${id}`, { metodo: 'PUT', token }),
   descurtir: (id, token) => requisicao(`/eu/curtidas/${id}`, { metodo: 'DELETE', token }),
+  /** Devolve { id } da reprodução, usado para mandar depois quanto foi ouvido. */
   registrarReproducao: (id, token) => requisicao(`/eu/reproducoes/${id}`, { metodo: 'POST', token }),
+  tempoReproducao: (id, segundos, token, manter = false) =>
+    requisicao(`/eu/reproducoes/${id}/tempo`, { metodo: 'PUT', corpo: { segundos }, token, manter }),
+  resumo: (mes, token) => requisicao(`/eu/resumo${mes ? `?mes=${encodeURIComponent(mes)}` : ''}`, { token }),
   recentes: (token) => requisicao('/eu/recentes', { token }),
 
   // Spotify (com login)

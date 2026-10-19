@@ -79,6 +79,22 @@ public class YoutubeCliente {
         RespostaBusca busca = get("/search?part=id&type=video&videoEmbeddable=true"
                 + (apenasMusica ? "&videoCategoryId=10" : "")
                 + "&maxResults=" + limite + "&q=" + codificar(termo), RespostaBusca.class);
+        return detalhesDaBusca(busca);
+    }
+
+    /**
+     * Vídeos relevantes publicados depois de uma data (os "Seus interesses" da aba Vídeos).
+     * Custa o mesmo que uma busca comum (100 unidades).
+     */
+    public List<Video> buscarRecentes(String termo, int limite, java.time.Instant depois) {
+        String data = java.time.format.DateTimeFormatter.ISO_INSTANT.format(depois.truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
+        RespostaBusca busca = get("/search?part=id&type=video&videoEmbeddable=true&order=relevance&regionCode=BR"
+                + "&publishedAfter=" + codificar(data)
+                + "&maxResults=" + limite + "&q=" + codificar(termo), RespostaBusca.class);
+        return detalhesDaBusca(busca);
+    }
+
+    private List<Video> detalhesDaBusca(RespostaBusca busca) {
         if (busca == null || busca.items() == null) {
             return List.of();
         }

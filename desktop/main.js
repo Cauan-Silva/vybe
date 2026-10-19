@@ -13,14 +13,26 @@
  * Ao fechar a janela: o VYBE vai para a bandeja (perto do relógio) e a música continua.
  * Ao sair de verdade (menu da bandeja): pede à API para desligar com calma, para o banco
  * fechar direito, e só então encerra.
+ *
+ * O programa também conversa com a página (ponte): recebe o que está tocando para mostrar
+ * no Discord e avisa quando há uma versão nova (atualização automática pelo GitHub).
  */
-const { app, BrowserWindow, Tray, Menu, shell, dialog, nativeImage } = require('electron')
+const { app, BrowserWindow, Tray, Menu, shell, dialog, nativeImage, ipcMain, Notification } = require('electron')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
 const ambiente = require('./ambiente.js')
+const { PresencaDiscord } = require('./discord.js')
+
+// Atualização automática (pacote electron-updater). Se faltar, o programa funciona sem ela.
+let autoUpdater = null
+try {
+  autoUpdater = require('electron-updater').autoUpdater
+} catch {
+  autoUpdater = null
+}
 
 const PORTA = 47823
 const ENDERECO = `http://127.0.0.1:${PORTA}`
@@ -50,7 +62,12 @@ function registrar(mensagem) {
     // sem log: segue a vida
   }
 }
-let desligarLuz = null // para a luz ambiente em tempo real
+let ponte = null // canal com a janela: luz ambiente e mensagens com a página ({ desligar, paraPagina })
+
+/** Manda uma mensagem para a página (ela recebe em window.__vybeDoPrograma). */
+function paraPagina(mensagem) {
+  ponte?.paraPagina(mensagem)
+}
 
 /** JPEG da foto da área do vídeo → pixels (BGRA no Windows). */
 /** JPEG -> pixels; "recorte" (em proporção da imagem, 0 a 1) pega só a área do vídeo. */
@@ -291,7 +308,7 @@ function criarJanela() {
   })
 
   janela.loadURL(ENDERECO)
-  desligarLuz = ambiente.ligarComElectron({ webContents: janela.webContents, registrar })
+  ponte = ambiente.ligarComElectron({ webContents: janela.webContents, registrar })
 }
 
 // ---------- Edge em modo aplicativo ----------
@@ -333,12 +350,13 @@ function abrirNoEdge() {
   const principal = !edge
   if (principal) {
     edge = processo
-    desligarLuz = ambiente.ligarComEdge({
+    ponte = ambiente.ligarComEdge({
       escrita: processo.stdio[3],
       leitura: processo.stdio[4],
       endereco: ENDERECO,
       decodificar: decodificarJpeg,
       registrar,
+      aoMensagem: tratarMensagem,
     })
   }
   processo.on('error', () => {
@@ -348,7 +366,8 @@ function abrirNoEdge() {
   })
   processo.on('exit', () => {
     if (!principal) return
-    desligarLuz?.()
+    ponte?.desligar()
+    ponte = null
     if (edge === processo) edge = null
     // Fechou a janela do VYBE: sem tela a música para, então desliga tudo e libera a memória.
     // (Se o Edge saiu em menos de 3 s, ele entregou a janela a outro processo: não dá para
@@ -382,6 +401,128 @@ function criarBandeja() {
   bandeja.on('click', mostrarJanela)
 }
 
+// ---------- Mensagens da página ----------
+
+const discord = new PresencaDiscord({
+  registrar,
+  aoEstado: (estado, detalhe) => {
+    estadoDiscord = { tipo: 'discord-estado', estado, detalhe: detalhe ?? null }
+    paraPagina(estadoDiscord)
+  },
+})
+let estadoDiscord = { tipo: 'discord-estado', estado: 'desligado', detalhe: null }
+
+/** O que a página manda (sempre um objeto { tipo, ... }). */
+function tratarMensagem(mensagem) {
+  if (!mensagem || typeof mensagem.tipo !== 'string') return
+  switch (mensagem.tipo) {
+    case 'ola': // a página abriu (ou recarregou): devolve o estado de tudo
+      paraPagina({ tipo: 'versao', versao: app.getVersion() })
+      paraPagina(estadoAtualizacao)
+      paraPagina(estadoDiscord)
+      break
+    case 'tocando':
+      discord.atualizar(mensagem)
+      break
+    case 'discord':
+      discord.configurar(mensagem)
+      break
+    case 'atualizacao':
+      if (mensagem.acao === 'procurar') procurarAtualizacao()
+      if (mensagem.acao === 'instalar') instalarAtualizacao()
+      break
+    default:
+      break
+  }
+}
+
+// Na janela do Electron (sem Edge), a página fala pelo preload.
+ipcMain.on('vybe:da-pagina', (evento, json) => {
+  if (!janela || evento.sender !== janela.webContents) return
+  try {
+    tratarMensagem(JSON.parse(String(json)))
+  } catch {
+    // mensagem malformada
+  }
+})
+
+// ---------- Atualização automática ----------
+/*
+ * Procura versões novas nas Releases do GitHub (Cauan-Silva/vybe). Achando, baixa em
+ * segundo plano e avisa a página; a instalação acontece ao fechar o VYBE ou quando a
+ * pessoa clica em "Reiniciar e atualizar". Só funciona no programa instalado.
+ */
+const PROCURAR_A_CADA_MS = 6 * 60 * 60 * 1000
+let estadoAtualizacao = { tipo: 'atualizacao', estado: 'parado', versaoAtual: app.getVersion() }
+
+function avisarAtualizacao(estado, extra = {}) {
+  estadoAtualizacao = { tipo: 'atualizacao', estado, versaoAtual: app.getVersion(), ...extra }
+  paraPagina(estadoAtualizacao)
+}
+
+function iniciarAtualizacoes() {
+  if (!autoUpdater || !app.isPackaged) {
+    avisarAtualizacao('indisponivel')
+    return
+  }
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+  autoUpdater.logger = {
+    info: (m) => registrar(`atualização: ${m}`),
+    warn: (m) => registrar(`atualização (aviso): ${m}`),
+    error: (m) => registrar(`atualização (erro): ${m}`),
+    debug: () => {},
+  }
+  let ultimoProgresso = -1
+  autoUpdater.on('checking-for-update', () => avisarAtualizacao('procurando'))
+  autoUpdater.on('update-not-available', () => avisarAtualizacao('em-dia'))
+  autoUpdater.on('update-available', (info) => {
+    ultimoProgresso = -1
+    avisarAtualizacao('baixando', { versao: info.version, progresso: 0 })
+  })
+  autoUpdater.on('download-progress', (p) => {
+    const progresso = Math.floor(p.percent ?? 0)
+    if (progresso === ultimoProgresso) return
+    ultimoProgresso = progresso
+    avisarAtualizacao('baixando', { versao: estadoAtualizacao.versao, progresso })
+  })
+  autoUpdater.on('update-downloaded', (info) => {
+    avisarAtualizacao('pronta', { versao: info.version })
+    if (Notification.isSupported()) {
+      new Notification({
+        title: `VYBE ${info.version} pronto para instalar`,
+        body: 'A atualização será instalada quando você fechar o VYBE. Se preferir, use "Reiniciar e atualizar".',
+        icon: icone,
+      }).show()
+    }
+  })
+  autoUpdater.on('error', (erro) => {
+    registrar(`atualização: falhou (${erro?.message ?? erro})`)
+    avisarAtualizacao('erro', { mensagem: 'Não foi possível procurar atualizações agora. Tente mais tarde.' })
+  })
+  setTimeout(procurarAtualizacao, 20_000) // depois da abertura, para não pesar
+  setInterval(procurarAtualizacao, PROCURAR_A_CADA_MS)
+}
+
+function procurarAtualizacao() {
+  if (!autoUpdater || !app.isPackaged) {
+    avisarAtualizacao('indisponivel')
+    return
+  }
+  if (['procurando', 'baixando', 'pronta'].includes(estadoAtualizacao.estado)) {
+    paraPagina(estadoAtualizacao)
+    return
+  }
+  autoUpdater.checkForUpdates().catch(() => {}) // o erro chega pelo evento "error"
+}
+
+function instalarAtualizacao() {
+  if (!autoUpdater || estadoAtualizacao.estado !== 'pronta') return
+  registrar(`atualização: reiniciando para instalar ${estadoAtualizacao.versao}`)
+  // Fecha o Edge e desliga a API com calma (before-quit) e então o instalador roda sozinho.
+  autoUpdater.quitAndInstall(true, true)
+}
+
 // ---------- Ciclo de vida ----------
 
 app.on('second-instance', mostrarJanela)
@@ -402,6 +543,7 @@ app.whenReady().then(async () => {
     return
   }
   criarBandeja()
+  iniciarAtualizacoes()
   modoEdge = Boolean(encontrarEdge())
   if (modoEdge) {
     abrirNoEdge()
@@ -416,6 +558,7 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', (evento) => {
   saindo = true
+  discord.encerrar() // limpa o "Ouvindo no VYBE" do perfil
   if (edge) {
     edge.kill() // fecha a janela do Edge junto
     edge = null

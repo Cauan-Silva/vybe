@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { definirModoLeve, lerModoLeve } from '../utils/modoLeve.js'
+import { aoReabrirPonte, enviarAoPrograma } from '../utils/programa.js'
 
 /*
  * Preferências de aparência: tema, tamanho do texto, Luz dinâmica (fundo tingido pela capa
@@ -25,7 +26,12 @@ const PADRAO = {
   intensidadeAmbiente: 'media', // 'suave' | 'media' | 'forte'
   tamanhoAmbiente: 'medio', // 'pequeno' | 'medio' | 'grande'
   ambienteTempoReal: true, // só tem efeito no programa
+  discordAtivo: false, // programa: mostrar no Discord o que está tocando
+  discordClientId: '', // ID do aplicativo criado em discord.com/developers
 }
+
+/** ID de aplicativo do Discord: só números (o Discord usa 17 a 20 dígitos). */
+export const ID_DISCORD = /^\d{15,25}$/
 
 const VALIDOS = {
   tema: TEMAS.map((t) => t.id),
@@ -35,6 +41,7 @@ const VALIDOS = {
   intensidadeAmbiente: ['suave', 'media', 'forte'],
   tamanhoAmbiente: ['pequeno', 'medio', 'grande'],
   ambienteTempoReal: [true, false],
+  discordAtivo: [true, false],
 }
 
 export function lerPreferencias() {
@@ -47,6 +54,9 @@ export function lerPreferencias() {
   const resultado = { ...PADRAO }
   for (const [chave, valores] of Object.entries(VALIDOS)) {
     if (valores.includes(salvas[chave])) resultado[chave] = salvas[chave]
+  }
+  if (typeof salvas.discordClientId === 'string' && ID_DISCORD.test(salvas.discordClientId)) {
+    resultado.discordClientId = salvas.discordClientId
   }
   return resultado
 }
@@ -83,17 +93,29 @@ export function PreferenciasProvider({ children }) {
     definirModoLeve(ligado)
   }, [])
 
+  /** Volta a aparência ao padrão (o Discord não é aparência: fica como está). */
   const restaurar = useCallback(() => {
-    try {
-      localStorage.removeItem(CHAVE)
-    } catch {
-      // nada a apagar
-    }
-    setPreferencias(PADRAO)
-    aplicarPreferencias(PADRAO)
+    setPreferencias((atuais) => {
+      const novas = { ...PADRAO, discordAtivo: atuais.discordAtivo, discordClientId: atuais.discordClientId }
+      try {
+        localStorage.setItem(CHAVE, JSON.stringify(novas))
+      } catch {
+        // sem armazenamento
+      }
+      aplicarPreferencias(novas)
+      return novas
+    })
     setModoLeve(false)
     definirModoLeve(false)
   }, [])
+
+  // Programa: avisa como o Discord deve ficar (e de novo sempre que a ponte reabrir).
+  const { discordAtivo, discordClientId } = preferencias
+  useEffect(() => {
+    const mandar = () => enviarAoPrograma({ tipo: 'discord', ativo: discordAtivo, clientId: discordClientId })
+    mandar()
+    return aoReabrirPonte(mandar)
+  }, [discordAtivo, discordClientId])
 
   const valor = useMemo(
     () => ({ ...preferencias, modoLeve, alterar, alterarModoLeve, restaurar }),

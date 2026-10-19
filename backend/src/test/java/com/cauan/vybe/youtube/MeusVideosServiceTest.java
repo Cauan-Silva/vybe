@@ -32,13 +32,15 @@ class MeusVideosServiceTest {
     @Mock
     private VideoUsuarioRepository videos;
     @Mock
+    private VisualizacaoVideoRepository visualizacoes;
+    @Mock
     private UsuarioRepository usuarios;
 
     private MeusVideosService service;
 
     @BeforeEach
     void setUp() {
-        service = new MeusVideosService(videos, usuarios, Clock.fixed(AGORA.toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
+        service = new MeusVideosService(videos, visualizacoes, usuarios, Clock.fixed(AGORA.toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
         lenient().when(videos.findByUsuarioIdAndVideoId(eq(1L), anyString())).thenReturn(Optional.empty());
         lenient().when(videos.save(any(VideoUsuario.class))).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -117,5 +119,39 @@ class MeusVideosServiceTest {
 
         assertThat(assistido.isAssistirDepois()).isFalse();
         verify(videos, never()).delete(any());
+    }
+
+    @Test
+    void visualizacaoGuardaCopiaDosDadosEComecaComZero() {
+        org.mockito.Mockito.when(visualizacoes.save(any(VisualizacaoVideo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.registrarVisualizacao(1L, video(600));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(VisualizacaoVideo.class);
+        verify(visualizacoes).save(captor.capture());
+        assertThat(captor.getValue().getTitulo()).isEqualTo("Bolo de cenoura");
+        assertThat(captor.getValue().getAssistidoEm()).isEqualTo(AGORA);
+        assertThat(captor.getValue().getSegundosAssistidos()).isZero();
+    }
+
+    @Test
+    void visualizacaoRecusaIdInvalido() {
+        assertThatThrownBy(() -> service.registrarVisualizacao(1L, new DadosVideo("<x>", "t", null, null, null, 0)))
+                .isInstanceOf(Excecoes.RegraNegocio.class);
+        verify(visualizacoes, never()).save(any());
+    }
+
+    @Test
+    void tempoDaVisualizacaoTemLimitesESoDoProprioUsuario() {
+        VisualizacaoVideo v = new VisualizacaoVideo();
+        lenient().when(visualizacoes.findByIdAndUsuarioId(3L, 1L)).thenReturn(Optional.of(v));
+        lenient().when(visualizacoes.findByIdAndUsuarioId(3L, 2L)).thenReturn(Optional.empty());
+
+        service.registrarTempoVisualizacao(1L, 3L, 125);
+        assertThat(v.getSegundosAssistidos()).isEqualTo(125);
+        service.registrarTempoVisualizacao(1L, 3L, Integer.MAX_VALUE);
+        assertThat(v.getSegundosAssistidos()).isEqualTo(MeusVideosService.TEMPO_MAXIMO_SEGUNDOS);
+        assertThatThrownBy(() -> service.registrarTempoVisualizacao(2L, 3L, 10))
+                .isInstanceOf(Excecoes.NaoEncontrado.class);
     }
 }

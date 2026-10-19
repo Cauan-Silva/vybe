@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,5 +61,24 @@ public class MeusVideosController {
     @PutMapping("/progresso")
     public VideoSalvo registrarProgresso(@RequestBody Progresso progresso, @AuthenticationPrincipal Jwt jwt) {
         return service.registrarProgresso(UsuarioAtual.id(jwt), progresso.video(), progresso.posicaoSegundos());
+    }
+
+    public record VisualizacaoCriada(Long id) {
+    }
+
+    public record Tempo(int segundos) {
+    }
+
+    /** Abriu um vídeo (conta para o "Seu mês no VYBE"). */
+    @PostMapping("/visualizacoes")
+    public VisualizacaoCriada registrarVisualizacao(@RequestBody DadosVideo video, @AuthenticationPrincipal Jwt jwt) {
+        return new VisualizacaoCriada(service.registrarVisualizacao(UsuarioAtual.id(jwt), video));
+    }
+
+    @PutMapping("/visualizacoes/{visualizacaoId}/tempo")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void registrarTempo(@PathVariable Long visualizacaoId, @RequestBody Tempo tempo,
+                               @AuthenticationPrincipal Jwt jwt) {
+        service.registrarTempoVisualizacao(UsuarioAtual.id(jwt), visualizacaoId, tempo.segundos());
     }
 }

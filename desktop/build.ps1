@@ -1,5 +1,5 @@
 ﻿<#
-  Monta o instalador do VYBE para Windows (VYBE Setup x.y.z.exe em desktop\dist).
+  Monta o instalador do VYBE para Windows (VYBE-Setup-x.y.z.exe em desktop\dist, mais o latest.yml da atualização automática).
 
   Uso, na pasta vybe:
     powershell -ExecutionPolicy Bypass -File desktop\build.ps1               # gera o instalador

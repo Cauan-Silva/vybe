@@ -123,14 +123,49 @@ class CanalEdge {
 }
 
 /**
- * Liga a luz ambiente usando o Edge. "endereco" é o do VYBE; "decodificar" transforma o JPEG
- * da foto em pixels ({ pixels, largura, altura }). Devolve uma função que desliga tudo.
+ * Liga o canal com a janela do Edge: luz ambiente e a ponte de mensagens com a página
+ * (Discord, atualizações). "endereco" é o do VYBE; "decodificar" transforma o JPEG em pixels;
+ * "aoMensagem" recebe o que a página manda. Devolve { desligar, paraPagina }.
+ *
+ * Ponte: a página chama window.vybeDesktopEnviar(json), uma função criada pelo próprio Edge
+ * a pedido do programa (Runtime.addBinding); o programa responde chamando
+ * window.__vybeDoPrograma(mensagem) na página.
  */
-function ligarComEdge({ escrita, leitura, endereco, decodificar, registrar = () => {} }) {
+function ligarComEdge({ escrita, leitura, endereco, decodificar, registrar = () => {}, aoMensagem = () => {} }) {
   const canal = new CanalEdge(escrita, leitura)
   let sessao = null
   let ativo = true
   let anexando = false
+  const pendentes = new Map() // última mensagem de cada tipo, guardada até a janela conectar
+
+  const entregar = (mensagem) =>
+    canal
+      .enviar('Runtime.evaluate', {
+        expression: `window.__vybeDoPrograma && window.__vybeDoPrograma(${JSON.stringify(mensagem)})`,
+      }, sessao)
+      .catch(() => {})
+
+  const paraPagina = (mensagem) => {
+    if (!sessao) {
+      pendentes.set(mensagem.tipo, mensagem)
+      return
+    }
+    entregar(mensagem)
+  }
+
+  const prepararPonte = async () => {
+    try {
+      await canal.enviar('Runtime.enable', {}, sessao)
+      await canal.enviar('Runtime.addBinding', { name: 'vybeDesktopEnviar' }, sessao)
+      // A página pode ter carregado antes da ponte existir: pede que mande tudo de novo.
+      await canal.enviar('Runtime.evaluate', { expression: 'window.__vybeReenviar && window.__vybeReenviar()' }, sessao)
+      for (const m of pendentes.values()) entregar(m)
+      pendentes.clear()
+      registrar('ponte: pronta')
+    } catch (e) {
+      registrar(`ponte: não ficou pronta (${e.message})`)
+    }
+  }
 
   const anexar = async (alvo) => {
     if (sessao || anexando || alvo.type !== 'page' || !alvo.url.startsWith(endereco)) return
@@ -141,6 +176,7 @@ function ligarComEdge({ escrita, leitura, endereco, decodificar, registrar = () 
       registrar('luz ambiente: conectada à janela')
       // versões antigas deixavam a janela "encolhida"; garante o tamanho normal
       canal.enviar('Emulation.clearDeviceMetricsOverride', {}, sessao).catch(() => {})
+      prepararPonte()
     } catch (e) {
       registrar(`luz ambiente: não conectou (${e.message})`)
     } finally {
@@ -150,6 +186,13 @@ function ligarComEdge({ escrita, leitura, endereco, decodificar, registrar = () 
 
   canal.aoEvento((m) => {
     if (m.method === 'Target.targetCreated' || m.method === 'Target.targetInfoChanged') anexar(m.params.targetInfo)
+    if (m.method === 'Runtime.bindingCalled' && m.sessionId === sessao && m.params.name === 'vybeDesktopEnviar') {
+      try {
+        aoMensagem(JSON.parse(m.params.payload))
+      } catch {
+        // mensagem malformada: ignora
+      }
+    }
     if (m.method === 'Target.detachedFromTarget' && m.params.sessionId === sessao) {
       sessao = null
       registrar('luz ambiente: janela desconectada')
@@ -277,14 +320,18 @@ function ligarComEdge({ escrita, leitura, endereco, decodificar, registrar = () 
   }
   setTimeout(ciclo, 1000)
 
-  return () => {
+  const desligar = () => {
     ativo = false
     clearInterval(relogioProcura)
     pararTransmissao().catch(() => {})
   }
+  return { desligar, paraPagina }
 }
 
-/** Mesma coisa com a janela do Electron (quando não há Edge). */
+/**
+ * Mesma coisa com a janela do Electron (quando não há Edge). Aqui a página fala com o
+ * programa pelo preload (ipc), e o programa responde com executeJavaScript.
+ */
 function ligarComElectron({ webContents, registrar = () => {} }) {
   let ativo = true
   const ciclo = async () => {
@@ -313,9 +360,16 @@ function ligarComElectron({ webContents, registrar = () => {} }) {
   }
   registrar('luz ambiente: usando a janela do Electron')
   setTimeout(ciclo, 1000)
-  return () => {
+  const paraPagina = (mensagem) => {
+    if (webContents.isDestroyed()) return
+    webContents
+      .executeJavaScript(`window.__vybeDoPrograma && window.__vybeDoPrograma(${JSON.stringify(mensagem)})`, true)
+      .catch(() => {})
+  }
+  const desligar = () => {
     ativo = false
   }
+  return { desligar, paraPagina }
 }
 
 module.exports = { coresDasBordas, realcar, CanalEdge, ligarComEdge, ligarComElectron }

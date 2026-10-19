@@ -6,7 +6,9 @@ import { useAvisos } from '../contextos/Avisos.jsx'
 import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { useCarregar } from '../utils/useCarregar.js'
-import { TEMAS, usePreferencias } from '../contextos/Preferencias.jsx'
+import { ID_DISCORD, TEMAS, usePreferencias } from '../contextos/Preferencias.jsx'
+import { enviarAoPrograma, useDoPrograma } from '../utils/programa.js'
+import { ATALHOS } from '../utils/useAtalhos.js'
 
 /** Aparência e desempenho: valem no programa e na versão web (ficam guardados neste computador). */
 function Aparencia() {
@@ -151,6 +153,157 @@ function Aparencia() {
   )
 }
 
+function Atalhos() {
+  return (
+    <section className="config__grupo">
+      <h2 className="config__titulo">Atalhos de teclado</h2>
+      <p className="texto-apoio-claro">Funcionam em qualquer tela, menos enquanto você digita num campo.</p>
+      <dl className="atalhos">
+        {ATALHOS.map(([teclas, acao]) => (
+          <div key={teclas} className="atalhos__linha">
+            <dt>
+              {teclas.split(' ').map((parte, i, todas) =>
+                parte === '+' || parte === 'ou' || (parte === '/' && i < todas.length - 1) ? (
+                  <span key={i} className="atalhos__sep">
+                    {parte}
+                  </span>
+                ) : (
+                  <kbd key={i}>{parte}</kbd>
+                ),
+              )}
+            </dt>
+            <dd>{acao}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="texto-apoio-claro">
+        As teclas de mídia do teclado e do fone (tocar, pausar, próxima) e o painel de mídia do Windows também
+        controlam o VYBE, mesmo com outro programa ou jogo em primeiro plano.
+      </p>
+    </section>
+  )
+}
+
+const TEXTO_DISCORD = {
+  desligado: 'Desligado.',
+  procurando: 'Procurando o Discord…',
+  conectado: 'Conectado ao Discord.',
+  erro: 'Não foi possível conectar.',
+}
+
+/** Programa: mostrar no perfil do Discord o que está tocando. */
+function SecaoDiscord() {
+  const p = usePreferencias()
+  const estado = useDoPrograma('discord-estado')
+  const [id, setId] = useState(p.discordClientId)
+  const idLimpo = id.trim()
+  const valido = ID_DISCORD.test(idLimpo)
+  const mudou = idLimpo !== p.discordClientId
+
+  return (
+    <section className="config__grupo">
+      <h2 className="config__titulo">Discord</h2>
+      <label className="config__chave">
+        <input type="checkbox" checked={p.discordAtivo} onChange={(e) => p.alterar('discordAtivo', e.target.checked)} />
+        <span>
+          <strong>Mostrar no Discord o que estou ouvindo</strong>
+          <span className="texto-apoio-claro">
+            Aparece no seu perfil “Ouvindo VYBE” com a música, o artista, a capa e o tempo. Some quando você pausa.
+          </span>
+        </span>
+      </label>
+      <ol className="config__passos">
+        <li>
+          Em{' '}
+          <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer">
+            discord.com/developers/applications
+          </a>
+          , clique em <strong>New Application</strong> e dê o nome <strong>VYBE</strong> (é o nome que aparece no perfil).
+        </li>
+        <li>
+          Copie o <strong>Application ID</strong> e cole aqui.
+        </li>
+        <li>
+          Deixe o Discord para computador aberto, com <strong>Privacidade da atividade → Compartilhar minha atividade</strong>{' '}
+          ligado.
+        </li>
+      </ol>
+      <div className="config__copiar">
+        <label className="campo campo--linha">
+          <span>ID do aplicativo</span>
+          <input
+            value={id}
+            onChange={(e) => setId(e.target.value)}
+            placeholder="Só números, ex.: 1234567890123456789"
+            inputMode="numeric"
+            spellCheck="false"
+            autoComplete="off"
+          />
+        </label>
+        <button
+          type="button"
+          className="botao botao--contorno botao--pequeno"
+          disabled={!mudou || (idLimpo !== '' && !valido)}
+          onClick={() => p.alterar('discordClientId', idLimpo)}
+        >
+          Salvar ID
+        </button>
+      </div>
+      {idLimpo !== '' && !valido && <p className="campo__erro">O ID tem só números (entre 15 e 25).</p>}
+      {p.discordAtivo && estado && (
+        <p className={`config__estado config__estado--${estado.estado}`} role="status">
+          {TEXTO_DISCORD[estado.estado] ?? estado.estado}
+          {estado.detalhe && estado.estado !== 'conectado' ? ` ${estado.detalhe}` : ''}
+          {estado.estado === 'conectado' && estado.detalhe ? ` (${estado.detalhe})` : ''}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/** Programa: versão e atualização automática pelo GitHub. */
+function SecaoAtualizacoes() {
+  const versao = useDoPrograma('versao')
+  const a = useDoPrograma('atualizacao')
+  const estado = a?.estado ?? 'parado'
+  const textos = {
+    parado: 'O VYBE procura versões novas sozinho, algumas vezes por dia.',
+    procurando: 'Procurando versões novas…',
+    'em-dia': 'Você está com a versão mais recente.',
+    baixando: `Baixando a versão ${a?.versao ?? 'nova'}… ${a?.progresso ?? 0}%`,
+    pronta: `A versão ${a?.versao} está pronta. Ela será instalada quando você fechar o VYBE.`,
+    erro: a?.mensagem ?? 'Não foi possível procurar atualizações agora.',
+    indisponivel: 'A atualização automática só funciona no programa instalado.',
+  }
+  return (
+    <section className="config__grupo">
+      <h2 className="config__titulo">Atualizações</h2>
+      <p>
+        Versão instalada: <strong>{versao?.versao ?? a?.versaoAtual ?? '…'}</strong>
+      </p>
+      <p className="texto-apoio-claro" role="status">
+        {textos[estado] ?? ''}
+      </p>
+      <div className="config__botoes">
+        {estado === 'pronta' ? (
+          <button type="button" className="botao botao--pequeno" onClick={() => enviarAoPrograma({ tipo: 'atualizacao', acao: 'instalar' })}>
+            Reiniciar e atualizar
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="botao botao--contorno botao--pequeno"
+            disabled={['procurando', 'baixando', 'indisponivel'].includes(estado)}
+            onClick={() => enviarAoPrograma({ tipo: 'atualizacao', acao: 'procurar' })}
+          >
+            Procurar agora
+          </button>
+        )}
+      </div>
+    </section>
+  )
+}
+
 /*
  * Configurações do programa: cada pessoa informa as próprias chaves das integrações.
  * Só existe no programa (Windows); na versão web as chaves ficam no servidor.
@@ -176,6 +329,7 @@ export default function Configuracoes() {
         <h1 className="titulo-pagina">Configurações</h1>
         <div className="config">
           <Aparencia />
+          <Atalhos />
         </div>
         <p className="texto-apoio-claro">As chaves das integrações só podem ser trocadas no programa para Windows.</p>
       </div>
@@ -232,6 +386,9 @@ export default function Configuracoes() {
 
       <div className="config">
         <Aparencia />
+        <Atalhos />
+        <SecaoDiscord />
+        <SecaoAtualizacoes />
       </div>
 
       <form className="config" onSubmit={aoEnviar}>

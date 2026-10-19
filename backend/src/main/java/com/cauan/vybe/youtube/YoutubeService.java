@@ -145,6 +145,20 @@ public class YoutubeService {
         return limpo.length() > 100 ? limpo.substring(0, 100) : limpo;
     }
 
+    /** Quanto tempo para trás valem os vídeos de um interesse. */
+    static final Duration RECENCIA_INTERESSE = Duration.ofDays(30);
+    static final int LIMITE_INTERESSE = 8;
+
+    /** Vídeos recentes e relevantes sobre um tema (100 unidades, guardado 6 horas). */
+    public List<VideoResponse> videosDoInteresse(String termo) {
+        String limpo = limpar(termo);
+        if (limpo.isEmpty() || !disponivel()) {
+            return List.of();
+        }
+        return paraVideos(doCache("interesse:" + limpo, VALIDADE_CACHE,
+                () -> cliente.buscarRecentes(limpo, LIMITE_INTERESSE, clock.instant().minus(RECENCIA_INTERESSE))));
+    }
+
     /** Vídeos do cache (se ainda valem) ou da API. */
     private List<Video> doCache(String chaveBruta, Duration validade, java.util.function.Supplier<List<Video>> buscar) {
         String chave = chaveBruta.toLowerCase(Locale.ROOT);

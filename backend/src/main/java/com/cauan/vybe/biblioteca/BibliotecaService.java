@@ -19,6 +19,8 @@ import java.util.List;
 public class BibliotecaService {
 
     private static final int LIMITE_RECENTES = 12;
+    static final int FOLGA_SEGUNDOS = 60;
+    static final int TEMPO_MAXIMO_SEGUNDOS = 12 * 3600;
 
     private final CurtidaRepository curtidas;
     private final ReproducaoRepository reproducoes;
@@ -65,10 +67,24 @@ public class BibliotecaService {
                 .toList();
     }
 
+    /** Começou a tocar: devolve o id para o player mandar depois quanto foi ouvido. */
     @Transactional
-    public void registrarReproducao(Long usuarioId, Long musicaId) {
-        reproducoes.save(new Reproducao(usuarios.getReferenceById(usuarioId), obterMusica(musicaId),
-                LocalDateTime.now(clock)));
+    public Long registrarReproducao(Long usuarioId, Long musicaId) {
+        return reproducoes.save(new Reproducao(usuarios.getReferenceById(usuarioId), obterMusica(musicaId),
+                LocalDateTime.now(clock))).getId();
+    }
+
+    /**
+     * Quanto da reprodução foi ouvido até agora (o player manda o total, não a diferença).
+     * Limitado à duração da música com uma folga, para um relógio errado não inflar o resumo.
+     */
+    @Transactional
+    public void registrarTempo(Long usuarioId, Long reproducaoId, int segundos) {
+        Reproducao r = reproducoes.findByIdAndUsuarioId(reproducaoId, usuarioId)
+                .orElseThrow(() -> new Excecoes.NaoEncontrado("Reprodução não encontrada"));
+        int duracao = r.getMusica().getDuracaoSegundos();
+        int limite = duracao > 0 ? duracao + FOLGA_SEGUNDOS : TEMPO_MAXIMO_SEGUNDOS;
+        r.setSegundosOuvidos(Math.max(0, Math.min(segundos, limite)));
     }
 
     @Transactional(readOnly = true)

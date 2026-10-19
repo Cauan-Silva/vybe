@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Carregando, Erro, PrecisaEntrar } from '../components/Estados.jsx'
 import Icone from '../components/Icone.jsx'
+import { SecaoInscricoes, SecaoInteresses, SecaoParaVoce } from '../components/FeedVideos.jsx'
 import { GradeVideos, PainelVideo } from '../components/Videos.jsx'
 import { useAuth } from '../contextos/Auth.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { useCarregar } from '../utils/useCarregar.js'
@@ -41,7 +42,14 @@ export default function Videos() {
   const [texto, setTexto] = useState('')
   const [termo, setTermo] = useState('') // o que foi de fato buscado
   const [categoria, setCategoria] = useState(null)
-  const [aberto, setAberto] = useState(null)
+  // Vindo do "Seu mês" (clique num vídeo), já abre ele.
+  const local = useLocation()
+  const [aberto, setAberto] = useState(() => local.state?.abrir ?? null)
+  useEffect(() => {
+    if (local.state?.abrir) pausar()
+    // só ao chegar na página
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [historicoInteiro, setHistoricoInteiro] = useState(false)
 
   const status = useCarregar(() => api.youtubeStatus().catch(() => ({ configurado: false })), [])
@@ -120,8 +128,10 @@ export default function Videos() {
           video={aberto}
           inicio={inicioDe(meus.progresso.get(aberto.id))}
           depois={meus.idsDepois.has(aberto.id)}
+          seguindo={meus.idsSeguidos.has(aberto.canalId)}
           onProgresso={meus.registrarProgresso}
           onAlternarDepois={meus.alternarDepois}
+          onAlternarSeguir={meus.alternarSeguir}
           onFechar={() => setAberto(null)}
         />
       )}
@@ -131,6 +141,14 @@ export default function Videos() {
           <h2 className="titulo-secao">Continuar assistindo</h2>
           {grade(continuar.slice(0, 4))}
         </section>
+      )}
+
+      {!termo && (
+        <>
+          <SecaoParaVoce meus={meus} abertoId={aberto?.id} onAbrir={abrir} />
+          <SecaoInscricoes meus={meus} abertoId={aberto?.id} onAbrir={abrir} />
+          <SecaoInteresses meus={meus} abertoId={aberto?.id} onAbrir={abrir} />
+        </>
       )}
 
       {!termo && meus.depois.length > 0 && (

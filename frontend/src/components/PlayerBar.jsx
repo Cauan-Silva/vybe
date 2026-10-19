@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePlayer, useTempo } from '../contextos/Player.jsx'
 import { duracao } from '../utils/formato.js'
@@ -98,6 +98,7 @@ export default function PlayerBar() {
       </div>
 
       <div className="player__extras">
+        <BotaoTimer />
         <button
           type="button"
           className={`botao-icone botao-modo ${filaAberta ? 'botao-modo--ativo' : ''}`}
@@ -135,6 +136,89 @@ export default function PlayerBar() {
 
       {filaAberta && <FilaPainel onFechar={() => setFilaAberta(false)} />}
     </footer>
+  )
+}
+
+const OPCOES_TIMER = [15, 30, 45, 60, 90]
+
+/** Quanto falta, arredondado para cima: "12 min", "1 h 05". */
+function falta(fim, agora) {
+  const minutos = Math.max(1, Math.ceil((fim - agora) / 60_000))
+  if (minutos < 60) return `${minutos} min`
+  return `${Math.floor(minutos / 60)} h ${String(minutos % 60).padStart(2, '0')}`
+}
+
+/** Timer para dormir: pausa depois de X minutos ou no fim da música atual. */
+function BotaoTimer() {
+  const { timer, definirTimer } = usePlayer()
+  const [aberto, setAberto] = useState(false)
+  const [agora, setAgora] = useState(() => Date.now())
+  const raiz = useRef(null)
+
+  // Atualiza o "falta" a cada 15 s (não precisa de mais precisão que isso).
+  useEffect(() => {
+    if (timer?.tipo !== 'minutos') return undefined
+    setAgora(Date.now())
+    const id = setInterval(() => setAgora(Date.now()), 15_000)
+    return () => clearInterval(id)
+  }, [timer])
+
+  useEffect(() => {
+    if (!aberto) return undefined
+    const fora = (e) => !raiz.current?.contains(e.target) && setAberto(false)
+    const esc = (e) => e.key === 'Escape' && setAberto(false)
+    document.addEventListener('mousedown', fora)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', fora)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [aberto])
+
+  const rotulo = !timer
+    ? 'Timer para dormir'
+    : timer.tipo === 'fim-da-musica'
+      ? 'Timer: pausa no fim desta música'
+      : `Timer: pausa em ${falta(timer.fim, agora)}`
+
+  function escolher(opcao) {
+    definirTimer(opcao)
+    setAberto(false)
+  }
+
+  return (
+    <div className="timer" ref={raiz}>
+      <button
+        type="button"
+        className={`botao-icone botao-modo ${timer ? 'botao-modo--ativo' : ''}`}
+        aria-label={rotulo}
+        title={rotulo}
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        onClick={() => setAberto((a) => !a)}
+      >
+        <Icone nome="lua" />
+        {timer?.tipo === 'minutos' && <span className="timer__resta">{Math.max(1, Math.ceil((timer.fim - agora) / 60_000))}</span>}
+      </button>
+      {aberto && (
+        <div className="menu__lista timer__menu" role="menu">
+          <p className="timer__titulo">{timer ? rotulo.replace('Timer: ', '') : 'Pausar a música…'}</p>
+          {OPCOES_TIMER.map((m) => (
+            <button key={m} role="menuitem" onClick={() => escolher(m)}>
+              Em {m < 60 ? `${m} minutos` : m === 60 ? '1 hora' : '1 h 30'}
+            </button>
+          ))}
+          <button role="menuitem" onClick={() => escolher('fim-da-musica')}>
+            No fim desta música
+          </button>
+          {timer && (
+            <button role="menuitem" className="menu__perigo" onClick={() => escolher(null)}>
+              Desligar o timer
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

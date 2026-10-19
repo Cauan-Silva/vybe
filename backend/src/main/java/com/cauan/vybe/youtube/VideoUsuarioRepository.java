@@ -25,4 +25,8 @@ public interface VideoUsuarioRepository extends JpaRepository<VideoUsuario, Long
     @Modifying
     @Query("update VideoUsuario v set v.assistidoEm = null, v.posicaoSegundos = 0 where v.usuario.id = :usuarioId")
     void zerarHistorico(@Param("usuarioId") Long usuarioId);
+
+    /** Vídeos que a pessoa já abriu (para o "Para você" não repetir o que ela já viu). */
+    @Query("select v.videoId from VideoUsuario v where v.usuario.id = :usuarioId and v.assistidoEm is not null")
+    List<String> idsAssistidos(@Param("usuarioId") Long usuarioId);
 }

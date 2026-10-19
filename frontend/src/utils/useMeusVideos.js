@@ -33,15 +33,21 @@ export function useMeusVideos() {
   const avisar = useAvisos()
   const [depois, setDepois] = useState([])
   const [historico, setHistorico] = useState([])
+  const [seguidos, setSeguidos] = useState([])
 
   useEffect(() => {
     if (!sessao) return
     let cancelado = false
-    Promise.all([chamar((t) => api.videosDepois(t)), chamar((t) => api.videosHistorico(t))])
-      .then(([d, h]) => {
+    Promise.all([
+      chamar((t) => api.videosDepois(t)),
+      chamar((t) => api.videosHistorico(t)),
+      chamar((t) => api.canaisSeguidos(t)).catch(() => []),
+    ])
+      .then(([d, h, s]) => {
         if (cancelado) return
         setDepois(d)
         setHistorico(h)
+        setSeguidos(s)
       })
       .catch(() => {})
     return () => {
@@ -50,6 +56,28 @@ export function useMeusVideos() {
   }, [sessao, chamar])
 
   const idsDepois = useMemo(() => new Set(depois.map((v) => v.id)), [depois])
+  const idsSeguidos = useMemo(() => new Set(seguidos.map((c) => c.id)), [seguidos])
+
+  /** Seguir / deixar de seguir. canal = { id, nome, avatarUrl }. */
+  const alternarSeguir = useCallback(
+    async (canal) => {
+      if (!canal?.id) return
+      try {
+        if (idsSeguidos.has(canal.id)) {
+          await chamar((t) => api.deixarDeSeguir(canal.id, t))
+          setSeguidos((lista) => lista.filter((c) => c.id !== canal.id))
+          avisar(`Você deixou de seguir ${canal.nome}`)
+        } else {
+          const salvo = await chamar((t) => api.seguirCanal(canal, t))
+          setSeguidos((lista) => [salvo, ...lista.filter((c) => c.id !== salvo.id)])
+          avisar(`Seguindo ${salvo.nome}: os vídeos novos aparecem em Inscrições`)
+        }
+      } catch (e) {
+        avisar(e.message, 'erro')
+      }
+    },
+    [idsSeguidos, chamar, avisar],
+  )
   const progresso = useMemo(() => new Map(historico.map((v) => [v.id, v])), [historico])
 
   const alternarDepois = useCallback(
@@ -96,5 +124,16 @@ export function useMeusVideos() {
     }
   }, [chamar, avisar])
 
-  return { depois, historico, idsDepois, progresso, alternarDepois, registrarProgresso, limparHistorico }
+  return {
+    depois,
+    historico,
+    seguidos,
+    idsDepois,
+    idsSeguidos,
+    progresso,
+    alternarDepois,
+    alternarSeguir,
+    registrarProgresso,
+    limparHistorico,
+  }
 }

@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contextos/Auth.jsx'
 import { usePreferencias } from '../contextos/Preferencias.jsx'
+import { api } from '../services/api.js'
+import { abrirPip, fecharPip, pipAberto, pipDisponivel } from '../services/pipVideo.js'
 import { carregarApi } from '../services/youtubePlayer.js'
+import { criarRegistroDeTempo } from '../utils/contadorTempo.js'
 import { duracao, numeroCompacto, tempoRelativo } from '../utils/formato.js'
+import { dadosDoVideo } from '../utils/useMeusVideos.js'
 import Icone from './Icone.jsx'
 
 /* Peças da aba Vídeos e da página do canal: cartão, grade e o player grande. */
@@ -87,6 +92,20 @@ export function GradeVideos({ videos, meus, abertoId, mostrarCanal, onAbrir }) {
   )
 }
 
+/** Seguir um canal: os vídeos novos dele aparecem em "Inscrições" na aba Vídeos. */
+export function BotaoSeguir({ seguindo, onClick, pequeno = true }) {
+  return (
+    <button
+      type="button"
+      className={`botao ${seguindo ? 'botao--contorno botao--marcado' : ''} ${pequeno ? 'botao--pequeno' : ''}`}
+      aria-pressed={seguindo}
+      onClick={onClick}
+    >
+      <Icone nome={seguindo ? 'feito' : 'adicionar'} tamanho={16} /> {seguindo ? 'Seguindo' : 'Seguir'}
+    </button>
+  )
+}
+
 /** De quanto em quanto tempo o progresso é salvo enquanto o vídeo toca. */
 const SALVAR_A_CADA_MS = 10_000
 const TOCANDO = 1
@@ -95,12 +114,38 @@ const TERMINOU = 0
 
 /**
  * Player grande com o player oficial do YouTube. Começa de onde a pessoa parou e salva
- * a posição enquanto toca, ao pausar, ao terminar e ao fechar.
+ * a posição enquanto toca, ao pausar, ao terminar e ao fechar. Pode ir para a janela
+ * flutuante (Picture-in-Picture) e voltar do mesmo ponto.
  */
-export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepois, onFechar }) {
+export function PainelVideo({
+  video,
+  inicio,
+  depois,
+  seguindo = false,
+  onProgresso,
+  onAlternarDepois,
+  onAlternarSeguir,
+  onFechar,
+}) {
   const caixaRef = useRef(null)
   const palcoRef = useRef(null)
   const tocandoRef = useRef(false)
+  const playerRef = useRef(null)
+  const registroRef = useRef(null) // tempo assistido (para o "Seu mês")
+  const montadoRef = useRef(true)
+  const videoIdRef = useRef(video.id)
+  const [emPip, setEmPip] = useState(false)
+  const { chamar } = useAuth()
+  const chamarRef = useRef(chamar)
+  useEffect(() => {
+    chamarRef.current = chamar
+  }, [chamar])
+  useEffect(() => {
+    montadoRef.current = true
+    return () => {
+      montadoRef.current = false
+    }
+  }, [])
   const { luzAmbiente, intensidadeAmbiente, tamanhoAmbiente, ambienteTempoReal, modoLeve } = usePreferencias()
   // "viva": o programa está mandando as cores do vídeo em tempo real
   const [viva, setViva] = useState(false)
@@ -113,17 +158,32 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
   useEffect(() => {
     let player = null
     let cancelado = false
+    videoIdRef.current = video.id
     const salvar = (fim = false) => {
       if (!player?.getCurrentTime) return
       const t = fim ? player.getDuration() : player.getCurrentTime()
       if (Number.isFinite(t)) onProgressoRef.current(video, Math.floor(t))
     }
 
+    // Outro vídeo na janela flutuante: fecha antes de abrir este.
+    if (pipAberto()) fecharPip()
+    setEmPip(false)
+
     // Entra no histórico assim que abre.
     onProgressoRef.current(video, inicio)
     tocandoRef.current = false
     vivaRef.current = false
     setViva(false)
+
+    // Conta para o "Seu mês no VYBE": registra a visualização e manda o tempo assistido.
+    const registro = criarRegistroDeTempo((id, segundos, manter) => {
+      chamarRef.current((t) => api.tempoVisualizacao(id, segundos, t, manter)).catch(() => {})
+    })
+    registroRef.current = registro
+    chamarRef
+      .current((t) => api.registrarVisualizacao(dadosDoVideo(video), t))
+      .then((r) => registro.definirId(r?.id ?? null))
+      .catch(() => {})
 
     carregarApi()
       .then(() => {
@@ -140,22 +200,38 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
           events: {
             onStateChange: (e) => {
               tocandoRef.current = e.data === TOCANDO
+              if (e.data === TOCANDO) registro.contador.tocar()
+              else registro.contador.pausar()
               if (e.data === PAUSADO) salvar()
               else if (e.data === TERMINOU) salvar(true)
+              if (e.data !== TOCANDO) registro.mandar()
             },
           },
         })
+        playerRef.current = player
       })
       .catch(() => {})
 
     const relogio = setInterval(() => {
-      if (player?.getPlayerState?.() === TOCANDO) salvar()
+      if (player?.getPlayerState?.() === TOCANDO) {
+        salvar()
+        registro.mandar()
+      }
     }, SALVAR_A_CADA_MS)
+    const aoEsconder = () => document.hidden && registro.mandar(true)
+    document.addEventListener('visibilitychange', aoEsconder)
 
     return () => {
       cancelado = true
       clearInterval(relogio)
-      salvar()
+      document.removeEventListener('visibilitychange', aoEsconder)
+      // Se o vídeo está na janela flutuante, é ela quem salva e conta o tempo daqui em diante.
+      if (!pipAberto(video.id)) {
+        salvar()
+        registro.contador.pausar()
+        registro.mandar()
+      }
+      playerRef.current = null
       try {
         player?.destroy?.()
       } catch {
@@ -199,6 +275,50 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
     }
   }, [luzAmbiente, ambienteTempoReal, modoLeve])
 
+  /** Leva o vídeo para a janela flutuante, do ponto em que está. */
+  async function abrirJanelaFlutuante() {
+    const player = playerRef.current
+    let tempo = inicio
+    let tocava = true
+    try {
+      tempo = player?.getCurrentTime?.() ?? inicio
+      tocava = player?.getPlayerState?.() === TOCANDO
+    } catch {
+      // player ainda carregando: começa do início salvo
+    }
+    const idDoVideo = video.id
+    const aberta = abrirPip({
+      video,
+      inicio: tempo,
+      registro: registroRef.current,
+      aoProgresso: (segundos) => onProgressoRef.current(video, segundos),
+      aoFechar: (segundos, tocavaNaJanela) => {
+        // Voltou: continua no player grande, se ele ainda for deste vídeo.
+        if (!montadoRef.current || videoIdRef.current !== idDoVideo) return
+        setEmPip(false)
+        try {
+          playerRef.current?.seekTo?.(segundos, true)
+          if (tocavaNaJanela) playerRef.current?.playVideo?.()
+        } catch {
+          // player sendo recriado
+        }
+      },
+    })
+    try {
+      player?.pauseVideo?.()
+    } catch {
+      // nada a pausar
+    }
+    setEmPip(true)
+    try {
+      await aberta
+    } catch {
+      // o navegador não deixou abrir: continua aqui mesmo
+      setEmPip(false)
+      if (tocava) playerRef.current?.playVideo?.()
+    }
+  }
+
   const detalhes = [
     Number.isFinite(video.visualizacoes) ? `${numeroCompacto(video.visualizacoes)} de visualizações` : null,
     Number.isFinite(video.curtidas) ? `${numeroCompacto(video.curtidas)} curtidas` : null,
@@ -229,6 +349,15 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
           />
         )}
         <div className="player-video__tela" ref={caixaRef} />
+        {emPip && (
+          <div className="player-video__pip">
+            <Icone nome="janelaFlutuante" tamanho={32} />
+            <p>Tocando na janela flutuante</p>
+            <button type="button" className="botao botao--contorno botao--pequeno" onClick={fecharPip}>
+              Trazer de volta
+            </button>
+          </div>
+        )}
       </div>
       <div className="player-video__info">
         <div>
@@ -243,6 +372,12 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
           {detalhes.length > 0 && <p className="player-video__detalhes">{detalhes.join(' · ')}</p>}
         </div>
         <div className="player-video__acoes">
+          {video.canalId && onAlternarSeguir && (
+            <BotaoSeguir
+              seguindo={seguindo}
+              onClick={() => onAlternarSeguir({ id: video.canalId, nome: video.canal || 'Canal', avatarUrl: null })}
+            />
+          )}
           <button
             type="button"
             className={`botao botao--contorno botao--pequeno ${depois ? 'botao--marcado' : ''}`}
@@ -251,6 +386,16 @@ export function PainelVideo({ video, inicio, depois, onProgresso, onAlternarDepo
           >
             <Icone nome={depois ? 'feito' : 'relogio'} tamanho={16} /> {depois ? 'Na lista' : 'Assistir depois'}
           </button>
+          {pipDisponivel() && !emPip && (
+            <button
+              type="button"
+              className="botao botao--contorno botao--pequeno"
+              title="Assistir numa janelinha que fica por cima de tudo (até de jogos em janela)"
+              onClick={abrirJanelaFlutuante}
+            >
+              <Icone nome="janelaFlutuante" tamanho={16} /> Janela flutuante
+            </button>
+          )}
           <a
             className="link-discreto link-externo"
             href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`}

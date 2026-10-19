@@ -37,6 +37,9 @@ public class SegurancaConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
+                // Páginas do VYBE podem aparecer em quadros só dentro do próprio VYBE: a janela
+                // flutuante dos vídeos carrega /pip-video.html num quadro. Sites de fora, não.
+                .headers(h -> h.frameOptions(f -> f.sameOrigin()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(regras -> regras
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

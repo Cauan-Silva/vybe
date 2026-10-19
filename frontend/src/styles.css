@@ -2657,3 +2657,884 @@ html.texto-grande {
 .config__sub {
   margin-left: 2rem;
 }
+
+/* ======================================================================
+   Fila editável, timer, janela flutuante, atalhos, Discord/atualizações
+   e "Seu mês no VYBE"
+   ====================================================================== */
+
+/* Cores do gráfico "Seu ritmo no mês": um par por tema, validado para daltonismo
+   e contraste com o fundo do painel (os neons dos temas são claros demais para barras). */
+:root {
+  --grafico-musica: #0aa3c2;
+  --grafico-video: #9a5cf5;
+}
+[data-tema='aurora'] {
+  --grafico-musica: #16ad78;
+  --grafico-video: #3b8fd9;
+}
+[data-tema='oceano'] {
+  --grafico-musica: #1f9ad8;
+  --grafico-video: #d0609a;
+}
+[data-tema='por-do-sol'] {
+  --grafico-musica: #c47616;
+  --grafico-video: #f0507f;
+}
+[data-tema='claro'] {
+  --grafico-musica: #0874b0;
+  --grafico-video: #6b2fe0;
+}
+
+/* ---------- Fila editável ---------- */
+
+.fila__secao--com-acao {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.fila__secao--com-acao h3 {
+  margin: 0;
+  font-size: inherit;
+}
+
+.fila__linha {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: var(--raio);
+}
+
+.fila__linha:hover {
+  background: color-mix(in srgb, var(--painel-3) 55%, transparent);
+}
+
+.fila__linha--arrastando {
+  opacity: 0.45;
+}
+
+/* linha de onde a música vai cair ao soltar */
+.fila__linha--alvo-cima::before,
+.fila__linha--alvo-baixo::after {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rotulo);
+}
+.fila__linha--alvo-cima::before {
+  top: -1px;
+}
+.fila__linha--alvo-baixo::after {
+  bottom: -1px;
+}
+
+.fila__alca {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  color: var(--texto-fraco);
+  cursor: grab;
+}
+
+.fila__linha .fila__item {
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+}
+
+.fila__acoes {
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.fila__linha:hover .fila__acoes,
+.fila__linha:focus-within .fila__acoes {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .fila__acoes {
+    opacity: 1;
+  }
+  .fila__alca {
+    display: none;
+  }
+}
+
+.botao-icone--pequeno {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* ---------- Timer para dormir ---------- */
+
+.timer {
+  position: relative;
+}
+
+.timer__resta {
+  position: absolute;
+  top: 0.1rem;
+  right: -0.15rem;
+  min-width: 1.1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: var(--rotulo);
+  color: var(--rotulo-escuro);
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.1rem;
+}
+
+.menu__lista.timer__menu {
+  top: auto;
+  bottom: calc(100% + 0.5rem); /* o player fica embaixo: o menu abre para cima */
+  right: -0.5rem;
+  max-height: none;
+}
+
+.timer__titulo {
+  margin: 0.25rem 0.75rem 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+}
+
+/* ---------- Janela flutuante (PiP) ---------- */
+
+.player-video__palco {
+  position: relative;
+}
+
+.player-video__pip {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--painel) 92%, transparent);
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.player-video__pip p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+/* ---------- Aviso de atualização (programa) ---------- */
+
+.aviso-atualizacao {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--altura-player) + 1rem);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(34rem, calc(100vw - 2rem));
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
+  border-radius: var(--raio-grande);
+  background: var(--painel-3);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rotulo) 40%, transparent), 0 16px 40px rgb(0 0 0 / 0.5);
+}
+
+.aviso-atualizacao > svg {
+  flex: none;
+  color: var(--rotulo);
+}
+
+.aviso-atualizacao p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.aviso-atualizacao .botao {
+  flex: none;
+}
+
+/* ---------- Configurações: atalhos, Discord, atualizações ---------- */
+
+.atalhos {
+  display: grid;
+  grid-template-columns: auto 1fr; /* todas as linhas dividem as mesmas duas colunas */
+  column-gap: 1.5rem;
+  margin: 0;
+}
+
+.atalhos__linha {
+  display: contents;
+}
+
+.atalhos dt,
+.atalhos dd {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+.atalhos__linha:last-child dt,
+.atalhos__linha:last-child dd {
+  border-bottom: 0;
+}
+
+.atalhos dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.atalhos dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  color: var(--texto-suave);
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.6rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 6px;
+  background: var(--painel-3);
+  box-shadow: inset 0 -2px 0 var(--linha);
+  font: 600 0.8125rem/1.5 var(--fonte);
+  text-align: center;
+  color: var(--texto);
+}
+
+.atalhos__sep {
+  font-size: 0.8125rem;
+  color: var(--texto-fraco);
+}
+
+.config__passos {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.375rem;
+  color: var(--texto-suave);
+}
+
+.config__passos a {
+  color: var(--rotulo);
+}
+
+.campo--linha {
+  flex: 1 1 16rem;
+}
+
+.campo__erro {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--erro);
+}
+
+.config__estado {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--texto-suave);
+}
+
+.config__estado::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--texto-fraco);
+  vertical-align: 0.1em;
+}
+
+.config__estado--conectado::before {
+  background: #2fd27a;
+}
+
+.config__estado--procurando::before {
+  background: #f2b33d;
+}
+
+.config__estado--erro::before {
+  background: var(--erro);
+}
+
+.config__botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* ---------- Seu mês no VYBE ---------- */
+
+.seu-mes__topo {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.seu-mes__chapeu {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rotulo);
+}
+
+.seu-mes__navegacao {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seu-mes__mes {
+  margin: 0;
+  min-width: 0;
+}
+
+.seu-mes__vazio {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.seu-mes__vazio svg {
+  flex: none;
+  color: var(--rotulo);
+}
+
+.seu-mes__numeros {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 70rem) {
+  .seu-mes__numeros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.numero {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--raio-grande);
+  background: var(--painel-2);
+}
+
+.numero--destaque {
+  grid-column: span 2;
+  grid-row: span 2;
+  align-content: center;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--violeta) 35%, transparent), transparent 60%),
+    var(--painel-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rotulo) 30%, transparent);
+}
+
+@media (max-width: 70rem) {
+  .numero--destaque {
+    grid-row: auto;
+  }
+}
+
+.numero__rotulo {
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+.numero__valor {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.numero__valor--texto {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.numero--destaque .numero__valor {
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+}
+
+.numero__apoio {
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+/* Gráfico: barras finas, cantos de 4px só no topo, 2px de folga entre música e vídeo */
+.ritmo {
+  padding: 1.25rem;
+  border-radius: var(--raio-grande);
+  background: var(--painel-2);
+}
+
+.ritmo__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ritmo__cabecalho .titulo-secao {
+  margin: 0;
+}
+
+.ritmo__legenda {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+.ritmo__legenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ritmo__amostra {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 3px;
+  vertical-align: -0.05em;
+}
+
+.ritmo__amostra--musica {
+  background: var(--grafico-musica);
+}
+
+.ritmo__amostra--video {
+  background: var(--grafico-video);
+}
+
+.ritmo__area {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+}
+
+.ritmo__eixo {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 11rem;
+  font-size: 0.75rem;
+  color: var(--texto-fraco);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  transform: translateY(-0.45em);
+}
+
+.ritmo__grafico {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: calc(11rem + 1.5rem);
+  min-width: 0;
+}
+
+.ritmo__grade {
+  position: absolute;
+  inset: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.ritmo__grade span {
+  border-top: 1px solid color-mix(in srgb, var(--linha) 70%, transparent);
+}
+
+.ritmo__coluna {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 4px;
+  outline: none;
+}
+
+.ritmo__coluna--ativa,
+.ritmo__coluna:focus-visible {
+  background: color-mix(in srgb, var(--texto) 6%, transparent);
+}
+
+.ritmo__coluna:focus-visible {
+  box-shadow: 0 0 0 2px var(--rotulo);
+}
+
+.ritmo__pilha {
+  height: 11rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px; /* folga entre os dois segmentos */
+}
+
+.ritmo__barra {
+  width: min(60%, 0.875rem);
+  min-height: 3px;
+}
+
+.ritmo__barra:first-child {
+  border-radius: 4px 4px 0 0; /* só o topo da pilha é arredondado */
+}
+
+.ritmo__barra--musica {
+  background: var(--grafico-musica);
+}
+
+.ritmo__barra--video {
+  background: var(--grafico-video);
+}
+
+.ritmo__dia {
+  height: 1.5rem;
+  padding-top: 0.35rem;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--texto-fraco);
+  font-variant-numeric: tabular-nums;
+}
+
+.ritmo__dica {
+  position: absolute;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  gap: 0.2rem;
+  min-width: 10rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--raio);
+  background: var(--painel-3);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  font-size: 0.8125rem;
+  color: var(--texto-suave);
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.ritmo__dica strong {
+  color: var(--texto);
+}
+
+.ritmo__dica b {
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.ritmo__tabela {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.ritmo__tabela summary {
+  cursor: pointer;
+  color: var(--texto-suave);
+}
+
+.ritmo__tabela table {
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.ritmo__tabela th,
+.ritmo__tabela td {
+  padding: 0.3rem 1rem 0.3rem 0;
+  text-align: left;
+  font-weight: 400;
+  border-bottom: 1px solid var(--linha);
+}
+
+.ritmo__tabela thead th {
+  color: var(--texto-suave);
+}
+
+.seu-mes__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem 1.5rem;
+}
+
+.top__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.top__cabecalho .titulo-secao {
+  margin: 0;
+}
+
+.top__lista {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.top__item {
+  display: grid;
+  grid-template-columns: 1.5rem auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: var(--raio);
+  background: none;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+
+.top__item:has(> .top__posicao + .top__textos) {
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+}
+
+button.top__item:hover,
+a.top__item:hover {
+  background: var(--painel-2);
+}
+
+.top__posicao {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--texto-fraco);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+li:first-child > .top__item .top__posicao {
+  color: var(--rotulo);
+}
+
+.top__capa {
+  width: 3rem;
+}
+
+.top__miniatura {
+  width: 5.25rem;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--painel-3);
+}
+
+.top__miniatura img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.top__textos {
+  display: grid;
+  min-width: 0;
+}
+
+.top__nome,
+.top__apoio {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top__nome {
+  font-weight: 600;
+}
+
+.top__apoio {
+  font-size: 0.875rem;
+  color: var(--texto-suave);
+}
+
+.top__numero {
+  display: grid;
+  justify-items: end;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.top__numero small {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+/* Barra do celular com 6 destinos: cada um ocupa a mesma fatia */
+@media (max-width: 48rem) {
+  .nav-movel a {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 0.125rem;
+    white-space: nowrap;
+  }
+}
+
+/* ---------- Aba Vídeos personalizada: seguir, inscrições, interesses ---------- */
+
+.canal-cabecalho__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.canais-seguidos {
+  display: flex;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0 0 0.25rem;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.canal-seguido {
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  width: 4.75rem;
+  color: var(--texto-suave);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.canal-seguido img,
+.canal-seguido__inicial {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rotulo) 35%, transparent);
+  transition: box-shadow 0.15s;
+}
+
+.canal-seguido__inicial {
+  display: grid;
+  place-items: center;
+  background: var(--painel-3);
+  color: var(--texto);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.canal-seguido:hover img,
+.canal-seguido:hover .canal-seguido__inicial,
+.canal-seguido:focus-visible img {
+  box-shadow: 0 0 0 2px var(--rotulo);
+}
+
+.canal-seguido:hover {
+  color: var(--texto);
+}
+
+.canal-seguido__nome {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.interesses__barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.interesses__barra .chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip--interesse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.875rem;
+  background: color-mix(in srgb, var(--rotulo) 18%, var(--painel-3));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rotulo) 45%, transparent);
+}
+
+.chip--interesse a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.chip--interesse button {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--texto-suave);
+}
+
+.chip--interesse button:hover {
+  background: color-mix(in srgb, var(--texto) 12%, transparent);
+  color: var(--texto);
+}
+
+.interesses__form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 18rem;
+  max-width: 28rem;
+}
+
+.interesses__form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: var(--painel-2);
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.interesses__form input:focus-visible {
+  outline: 2px solid var(--rotulo);
+  outline-offset: 1px;
+}
+
+.interesses__dica {
+  margin: 0.625rem 0 0;
+  font-size: 0.875rem;
+}

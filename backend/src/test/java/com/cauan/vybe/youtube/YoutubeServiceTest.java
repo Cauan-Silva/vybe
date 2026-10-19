@@ -170,16 +170,16 @@ class YoutubeServiceTest {
 
     @Test
     void emAltaFicaUmaHoraEmCache() {
-        when(cliente.populares(YoutubeService.LIMITE_VIDEOS))
+        when(cliente.populares(YoutubeService.LIMITE_VIDEOS, null))
                 .thenReturn(List.of(new Video("emalta00001", "Em alta", "Canal", null, 0, true)));
 
         assertThat(service.videosEmAlta()).extracting(YoutubeDtos.VideoResponse::duracaoSegundos).containsExactly(0);
         service.videosEmAlta();
-        verify(cliente, times(1)).populares(YoutubeService.LIMITE_VIDEOS);
+        verify(cliente, times(1)).populares(YoutubeService.LIMITE_VIDEOS, null);
 
         instante.set(AGORA.plus(YoutubeService.VALIDADE_EM_ALTA).plus(Duration.ofMinutes(1)));
         service.videosEmAlta();
-        verify(cliente, times(2)).populares(YoutubeService.LIMITE_VIDEOS);
+        verify(cliente, times(2)).populares(YoutubeService.LIMITE_VIDEOS, null);
     }
 
     // ---------- Categorias e canal ----------
@@ -218,5 +218,27 @@ class YoutubeServiceTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.canal("../x"))
                 .isInstanceOf(com.cauan.vybe.comum.Excecoes.NaoEncontrado.class);
         verify(cliente, never()).canal(anyString());
+    }
+
+    // ---------- Interesses ----------
+
+    @Test
+    void interesseBuscaVideosDosUltimos30DiasEGuardaSeisHoras() {
+        when(cliente.buscarRecentes(eq("valorant"), eq(YoutubeService.LIMITE_INTERESSE), any(Instant.class)))
+                .thenReturn(List.of(new Video("valorant001", "Clutch 1v5", "Canal", null, 600, true)));
+
+        assertThat(service.videosDoInteresse("  valorant ")).extracting(YoutubeDtos.VideoResponse::titulo)
+                .containsExactly("Clutch 1v5");
+        service.videosDoInteresse("VALORANT"); // mesma busca: vem do cache
+        verify(cliente, times(1)).buscarRecentes(eq("valorant"), eq(YoutubeService.LIMITE_INTERESSE),
+                eq(AGORA.minus(YoutubeService.RECENCIA_INTERESSE)));
+    }
+
+    @Test
+    void interesseVazioOuSemChaveNaoGastaCota() {
+        assertThat(service.videosDoInteresse("   ")).isEmpty();
+        lenient().when(cliente.configurado()).thenReturn(false);
+        assertThat(service.videosDoInteresse("valorant")).isEmpty();
+        verify(cliente, never()).buscarRecentes(anyString(), org.mockito.ArgumentMatchers.anyInt(), any());
     }
 }

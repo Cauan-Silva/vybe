@@ -1,6 +1,6 @@
 # VYBE para Windows (programa instalável)
 
-O VYBE também é um programa para Windows: um instalador `VYBE Setup.exe` que qualquer pessoa
+O VYBE também é um programa para Windows: um instalador `VYBE-Setup.exe` que qualquer pessoa
 baixa e usa, sem instalar Java, PostgreSQL ou Node e sem abrir terminal.
 
 ## Como funciona por dentro
@@ -46,7 +46,8 @@ Na aba Vídeos, o brilho em volta do player acompanha as cores do vídeo. Como o
 YouTube (outro site), a página não consegue ler os quadros; quem faz isso é o programa (`desktop/ambiente.js`):
 
 1. pergunta à página onde está o vídeo e se ele está tocando (`window.__vybeAmbiente`);
-2. fotografa só essa área, reduzida a 64 px de largura, cerca de 8 vezes por segundo;
+2. recebe do Edge um fluxo pequeno da janela (`Page.startScreencast`, que não mexe no tamanho da tela),
+   recorta a área do vídeo e reduz a 64 px de largura, cerca de 8 vezes por segundo;
 3. calcula a cor média de cada borda (topo, base, esquerda, direita), com um pouco mais de saturação;
 4. devolve as cores à página (`window.__vybeLuz`), que pinta quatro manchas desfocadas com transição suave.
 
@@ -54,6 +55,44 @@ Com o Edge, a conversa usa o protocolo de depuração do Chromium por um canal p
 (`--remote-debugging-pipe`, sem abrir porta nenhuma); com a janela do Electron, usa `capturePage`.
 Nada é capturado com o vídeo pausado, a janela minimizada ou o player fora da tela, e o Modo leve desliga
 tudo. Na versão web, a luz usa as cores da miniatura do vídeo.
+
+## Conversa entre o programa e a página (ponte)
+
+O mesmo canal privado com o Edge serve de ponte: o programa pede ao Edge para criar na página a função
+`window.vybeDesktopEnviar(json)` (`Runtime.addBinding`), e a página usa ela para mandar mensagens; o
+programa responde chamando `window.__vybeDoPrograma(mensagem)`. Na janela do Electron, a página manda pelo
+preload (`window.vybeDesktop.enviar`). Mensagens: o que está tocando (`tocando`), a configuração do
+Discord (`discord`), pedidos de atualização (`atualizacao`) e, do programa para a página, a versão, o estado
+da atualização e o do Discord. O lado da página fica em `frontend/src/utils/programa.js`.
+
+## Discord ("Ouvindo VYBE")
+
+`desktop/discord.js` fala direto com o Discord aberto no computador, pelo canal local dele
+(`\\?\pipe\discord-ipc-0`): apresenta-se com o ID do aplicativo e manda `SET_ACTIVITY` com música,
+artista, capa (quando é um endereço https) e o tempo. Nada sai do computador por aqui. Ao pausar, a
+atividade some; ao fechar o VYBE, também. As atualizações são juntadas (no máximo uma a cada 4 s), porque o
+Discord limita quantas aceita.
+
+Cada pessoa cria o próprio aplicativo em discord.com/developers/applications, com o nome **VYBE**
+(é o nome que aparece no perfil), e cola o **Application ID** em Configurações → Discord.
+
+## Atualização automática
+
+O programa usa o `electron-updater` com as Releases do GitHub (`Cauan-Silva/vybe`). Uns 20 segundos depois
+de abrir, e de 6 em 6 horas, ele procura uma versão nova; achando, baixa em segundo plano e mostra o aviso
+**"Reiniciar e atualizar"**. Se a pessoa não clicar, a versão nova é instalada quando ela fechar o VYBE.
+Só funciona no programa instalado (com `npm start` aparece como indisponível).
+
+Para publicar uma versão nova:
+
+1. Aumente `version` em `desktop/package.json` (ex.: `0.2.0` → `0.3.0`).
+2. Gere o instalador com `build.ps1`.
+3. Crie a Release `v0.3.0` no GitHub e anexe **os três arquivos** de `desktop\dist`:
+   `VYBE-Setup-0.3.0.exe`, `VYBE-Setup-0.3.0.exe.blockmap` e `latest.yml`.
+   O `latest.yml` é o que os programas instalados leem para saber que há versão nova.
+
+A 0.1.0 não tinha atualização automática: quem está nela instala a 0.2.0 à mão uma vez, e daí em diante
+as versões chegam sozinhas.
 
 ## Chaves das integrações
 
@@ -79,6 +118,11 @@ continua usando o secret, que fica só no servidor.
   Spotify não toca: as músicas do Spotify continuam aparecendo e o selo abre o app oficial.
 - **Modo de desenvolvimento do Spotify:** cada app do Spotify aceita até 5 usuários cadastrados no painel.
   Por isso cada pessoa cria o próprio app.
+- **Janela flutuante dos vídeos:** usa a Document Picture-in-Picture do Edge/Chrome. Fica por cima de
+  janelas comuns e de jogos em modo janela/sem bordas; jogos em tela cheia exclusiva desenham por cima
+  de tudo.
+- **Instalador sem assinatura digital:** o Windows mostra o aviso do SmartScreen na primeira instalação
+  ("Mais informações → Executar assim mesmo"). A atualização automática funciona mesmo assim.
 - **Visual C++ 2013:** o PostgreSQL embutido pode precisar do "Microsoft Visual C++ 2013 Redistributable
   (x64)". Se o programa não abrir na primeira vez, a mensagem de erro avisa.
 
@@ -92,7 +136,8 @@ powershell -ExecutionPolicy Bypass -File desktop\build.ps1
 ```
 
 O script compila a API com o perfil `desktop`, monta o React apontando para `/api`, gera o Java enxuto com
-`jlink`, copia o ícone e chama o `electron-builder`. O instalador sai em `desktop\dist\VYBE Setup 0.1.0.exe`.
+`jlink`, copia o ícone e chama o `electron-builder`. O instalador sai em `desktop\dist\VYBE-Setup-<versão>.exe`,
+junto com o `.blockmap` e o `latest.yml` usados pela atualização automática.
 
 Para abrir o programa sem gerar o instalador (desenvolvimento):
 

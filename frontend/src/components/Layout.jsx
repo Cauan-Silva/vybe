@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contextos/Auth.jsx'
 import { useAvisos } from '../contextos/Avisos.jsx'
@@ -6,28 +6,20 @@ import { useBiblioteca } from '../contextos/Biblioteca.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
 import { usePreferencias } from '../contextos/Preferencias.jsx'
 import { urlArquivo } from '../services/api.js'
-import { NOME_APP } from '../config.js'
+import { EH_PROGRAMA, NOME_APP } from '../config.js'
+import { useAtalhos } from '../utils/useAtalhos.js'
+import { enviarAoPrograma, useDoPrograma } from '../utils/programa.js'
 import Capa from './Capa.jsx'
 import Icone from './Icone.jsx'
 import PlayerBar from './PlayerBar.jsx'
 
 export default function Layout() {
-  const { alternarPlay, atual } = usePlayer()
+  const { atual } = usePlayer()
   const { luzDinamica } = usePreferencias()
   const capaAtual = luzDinamica && atual?.capaUrl ? urlArquivo(atual.capaUrl) : null
 
-  // Barra de espaço = tocar/pausar, a não ser que a pessoa esteja digitando ou num botão.
-  useEffect(() => {
-    const aoTeclar = (e) => {
-      if (e.code !== 'Space') return
-      const alvo = e.target
-      if (alvo.closest('input, textarea, select, button, a, [contenteditable="true"]')) return
-      e.preventDefault()
-      alternarPlay()
-    }
-    document.addEventListener('keydown', aoTeclar)
-    return () => document.removeEventListener('keydown', aoTeclar)
-  }, [alternarPlay])
+  // Atalhos de teclado (Espaço, setas, M, Ctrl+K...): lista em Configurações.
+  useAtalhos()
 
   return (
     <div className="app">
@@ -41,6 +33,38 @@ export default function Layout() {
       </main>
       <PlayerBar />
       <NavMovel />
+      {EH_PROGRAMA && <AvisoAtualizacao />}
+    </div>
+  )
+}
+
+/** Programa: aviso discreto quando uma versão nova já foi baixada. */
+function AvisoAtualizacao() {
+  const atualizacao = useDoPrograma('atualizacao')
+  const [dispensada, setDispensada] = useState(null)
+  if (atualizacao?.estado !== 'pronta' || dispensada === atualizacao.versao) return null
+  return (
+    <div className="aviso-atualizacao" role="status">
+      <Icone nome="estrela" tamanho={18} />
+      <p>
+        <strong>VYBE {atualizacao.versao}</strong> está pronto. Ele será instalado quando você fechar o programa.
+      </p>
+      <button
+        type="button"
+        className="botao botao--pequeno"
+        onClick={() => enviarAoPrograma({ tipo: 'atualizacao', acao: 'instalar' })}
+      >
+        Reiniciar e atualizar
+      </button>
+      <button
+        type="button"
+        className="botao-icone"
+        aria-label="Depois"
+        title="Depois"
+        onClick={() => setDispensada(atualizacao.versao)}
+      >
+        <Icone nome="fechar" tamanho={16} />
+      </button>
     </div>
   )
 }
@@ -81,6 +105,11 @@ function Lateral() {
         <li>
           <NavLink to="/videos">
             <Icone nome="video" /> Vídeos
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/seu-mes">
+            <Icone nome="estrela" /> Seu mês
           </NavLink>
         </li>
         <li>
@@ -171,6 +200,9 @@ function NavMovel() {
       </NavLink>
       <NavLink to="/videos">
         <Icone nome="video" /> Vídeos
+      </NavLink>
+      <NavLink to="/seu-mes">
+        <Icone nome="estrela" /> Seu mês
       </NavLink>
       <NavLink to="/biblioteca">
         <Icone nome="biblioteca" /> Biblioteca

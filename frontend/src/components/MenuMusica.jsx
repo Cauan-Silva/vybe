@@ -20,7 +20,7 @@ export default function MenuMusica({ musica, onRemoverDaPlaylist, onExcluida }) 
   const navegar = useNavigate()
   const { sessao, usuario, chamar } = useAuth()
   const { playlists, criarPlaylist, adicionarNaPlaylist } = useBiblioteca()
-  const { adicionarAFila } = usePlayer()
+  const { adicionarAFila, tocarASeguir } = usePlayer()
   const avisar = useAvisos()
 
   useEffect(() => {
@@ -98,8 +98,14 @@ export default function MenuMusica({ musica, onRemoverDaPlaylist, onExcluida }) 
           {!escolhendoPlaylist ? (
             <>
               <button role="menuitem" onClick={executar(() => {
+                tocarASeguir(musica)
+                avisar('Vai tocar em seguida')
+              })}>
+                Tocar a seguir
+              </button>
+              <button role="menuitem" onClick={executar(() => {
                 adicionarAFila(musica)
-                avisar('Adicionada à fila')
+                avisar('Adicionada ao fim da fila')
               })}>
                 Adicionar à fila
               </button>

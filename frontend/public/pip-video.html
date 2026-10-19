@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>VYBE</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+      }
+      #tela,
+      #tela iframe {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Player da janela flutuante (Picture-in-Picture). Fica numa página do próprio VYBE porque o
+      YouTube só aceita o player vindo de uma página com endereço de verdade (ele confere de onde
+      veio o pedido); a janela flutuante em si é uma página em branco, e lá ele dá o "Erro 153".
+      Quem abre a janela (services/pipVideo.js) lê o tempo em window.vybePlayer e recebe as
+      mudanças de estado por window.parent.__vybePipEstado.
+    -->
+    <div id="tela"><div id="alvo"></div></div>
+    <script>
+      const parametros = new URLSearchParams(location.search)
+      const id = parametros.get('v') || ''
+      const inicio = Math.max(0, Math.floor(Number(parametros.get('t')) || 0))
+      window.onYouTubeIframeAPIReady = () => {
+        if (!/^[A-Za-z0-9_-]{6,20}$/.test(id)) return
+        window.vybePlayer = new YT.Player(document.getElementById('alvo'), {
+          width: '100%',
+          height: '100%',
+          videoId: id,
+          host: 'https://www.youtube-nocookie.com',
+          playerVars: { autoplay: 1, rel: 0, playsinline: 1, start: inicio },
+          events: {
+            onStateChange: (e) => {
+              try {
+                window.parent.__vybePipEstado?.(e.data)
+              } catch {
+                // janela flutuante fechando
+              }
+            },
+          },
+        })
+      }
+    </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+  </body>
+</html>

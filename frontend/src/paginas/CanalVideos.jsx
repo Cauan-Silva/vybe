@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Carregando, Erro, PrecisaEntrar } from '../components/Estados.jsx'
 import Icone from '../components/Icone.jsx'
-import { GradeVideos, PainelVideo } from '../components/Videos.jsx'
+import { BotaoSeguir, GradeVideos, PainelVideo } from '../components/Videos.jsx'
 import { useAuth } from '../contextos/Auth.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
 import { api } from '../services/api.js'
@@ -52,6 +52,12 @@ export default function CanalVideos() {
         <div>
           <h1 className="titulo-pagina">{c.nome}</h1>
           {detalhes.length > 0 && <p className="nota-secao">{detalhes.join(' · ')}</p>}
+          <div className="canal-cabecalho__acoes">
+            <BotaoSeguir
+              pequeno={false}
+              seguindo={meus.idsSeguidos.has(c.id)}
+              onClick={() => meus.alternarSeguir({ id: c.id, nome: c.nome, avatarUrl: c.avatarUrl })}
+            />
           <a
             className="link-discreto link-externo"
             href={`https://www.youtube.com/channel/${encodeURIComponent(c.id)}`}
@@ -60,6 +66,7 @@ export default function CanalVideos() {
           >
             Abrir no YouTube <Icone nome="externo" tamanho={14} />
           </a>
+          </div>
         </div>
       </header>
 
@@ -68,8 +75,10 @@ export default function CanalVideos() {
           video={aberto}
           inicio={inicioDe(meus.progresso.get(aberto.id))}
           depois={meus.idsDepois.has(aberto.id)}
+          seguindo={meus.idsSeguidos.has(aberto.canalId)}
           onProgresso={meus.registrarProgresso}
           onAlternarDepois={meus.alternarDepois}
+          onAlternarSeguir={meus.alternarSeguir}
           onFechar={() => setAberto(null)}
         />
       )}

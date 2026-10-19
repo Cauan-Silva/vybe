@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,10 +51,23 @@ public class BibliotecaController {
         service.descurtir(UsuarioAtual.id(jwt), musicaId);
     }
 
+    public record ReproducaoCriada(Long id) {
+    }
+
+    public record Tempo(int segundos) {
+    }
+
     @PostMapping("/reproducoes/{musicaId}")
+    public ReproducaoCriada registrarReproducao(@PathVariable Long musicaId, @AuthenticationPrincipal Jwt jwt) {
+        return new ReproducaoCriada(service.registrarReproducao(UsuarioAtual.id(jwt), musicaId));
+    }
+
+    /** O player manda de tempos em tempos quanto da música já foi ouvido. */
+    @PutMapping("/reproducoes/{reproducaoId}/tempo")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void registrarReproducao(@PathVariable Long musicaId, @AuthenticationPrincipal Jwt jwt) {
-        service.registrarReproducao(UsuarioAtual.id(jwt), musicaId);
+    public void registrarTempo(@PathVariable Long reproducaoId, @RequestBody Tempo tempo,
+                               @AuthenticationPrincipal Jwt jwt) {
+        service.registrarTempo(UsuarioAtual.id(jwt), reproducaoId, tempo.segundos());
     }
 
     @GetMapping("/recentes")
