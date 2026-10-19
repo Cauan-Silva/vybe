@@ -1,4 +1,5 @@
 # VYBE
+[![Baixar para Windows](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Windows&logo=windows&style=for-the-badge&color=19e0ff)](https://github.com/Cauan-Silva/vybe/releases/latest)
 
 App de streaming de música feito do zero: você envia suas faixas, a API entrega o áudio em pedaços como os serviços de streaming de verdade, e o player continua tocando enquanto você navega.
 
