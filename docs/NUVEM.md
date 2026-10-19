@@ -1,4 +1,4 @@
-# VYBE online: Render, Neon e Cloudflare R2
+# VYBE online: Render, Neon e Backblaze B2 (ou Cloudflare R2)
 
 O app Android não tem servidor dentro dele: ele conversa com a API do VYBE publicada na internet. Tudo aqui usa planos gratuitos.
 
@@ -6,7 +6,7 @@ O app Android não tem servidor dentro dele: ele conversa com a API do VYBE publ
 |---|---|---|
 | API (Spring Boot em Docker) | [Render](https://render.com) | 750 h/mês; **dorme após 15 min sem uso** e leva cerca de 1 min para acordar |
 | Banco PostgreSQL | [Neon](https://neon.tech) | 0,5 GB, não expira |
-| Áudios e imagens enviados | [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) | 10 GB, sem custo de download |
+| Áudios e imagens enviados | [Backblaze B2](https://www.backblaze.com/cloud-storage) (sem cartão) ou [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) (pede cartão) | 10 GB nos dois |
 
 Por que o R2: o disco dos serviços gratuitos é apagado a cada deploy, então as músicas enviadas sumiriam. Com o perfil `nuvem`, a API grava os arquivos no R2 e, na hora de tocar, manda o navegador baixar direto de lá (resposta 302). A API não gasta banda com áudio.
 
@@ -24,7 +24,21 @@ Faça na ordem abaixo. **Nenhuma senha ou chave vai para o Git**: elas ficam só
 
 As tabelas são criadas sozinhas pelo Flyway no primeiro start.
 
-## 2. Arquivos no Cloudflare R2
+## 2. Arquivos no Backblaze B2 (sem cartão)
+
+1. Crie a conta em [backblaze.com](https://www.backblaze.com/sign-up/s3) (**B2 Cloud Storage**). Não pede cartão.
+2. **Buckets → Create a Bucket**: nome único (ex.: `vybe-cauan`), **Files in Bucket: Private**, o resto como vier. O nome é o `S3_BUCKET`.
+3. Na lista de buckets, anote o **Endpoint** do seu, ex.: `s3.us-east-005.backblazeb2.com`:
+   - `S3_ENDPOINT` = `https://s3.us-east-005.backblazeb2.com`
+   - `S3_REGIAO` = o pedaço do meio, `us-east-005`
+4. **Application Keys → Add a New Application Key**: nome `vybe-api`, **Allow access to Bucket(s)**: o seu bucket, **Type of Access: Read and Write**. Anote (aparece uma vez só):
+   - **keyID** → `S3_CHAVE`
+   - **applicationKey** → `S3_SEGREDO`
+5. Deixe `S3_URL_PUBLICA` vazio: com o bucket privado, a API gera links assinados que valem 1 hora.
+
+O plano gratuito tem 10 GB guardados e download grátis até 3 vezes o que estiver guardado por mês.
+
+## 2 (alternativa). Arquivos no Cloudflare R2 (pede cartão)
 
 1. No painel da Cloudflare, abra **R2 Object Storage**. Para ativar, a Cloudflare pede um meio de pagamento, mas não cobra nada dentro do plano gratuito.
 2. **Create bucket** com o nome `vybe`. Esse nome é o `S3_BUCKET`.
@@ -44,6 +58,7 @@ As tabelas são criadas sozinhas pelo Flyway no primeiro start.
 |---|---|
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | do passo 1 |
 | `S3_ENDPOINT`, `S3_BUCKET`, `S3_CHAVE`, `S3_SEGREDO` | do passo 2 |
+| `S3_REGIAO` | B2: a região do endpoint (ex.: `us-east-005`); R2: `auto` |
 | `S3_URL_PUBLICA` | do passo 2 (ou deixe vazio) |
 | `FRONTEND_URL` | `https://vybe-api.onrender.com/api/spotify/app` (troque pelo endereço do seu serviço) |
 | `YOUTUBE_API_KEY` | a chave do YouTube (passo 4) |
@@ -78,7 +93,7 @@ No celular, "Conectar com o Spotify" abre o login no navegador. Depois de autori
 cd backend
 $env:SPRING_PROFILES_ACTIVE = "nuvem"
 $env:DB_URL = "jdbc:postgresql://localhost:5432/vybe"
-# ... e as variáveis S3_* do R2
+# ... e as variáveis S3_* do B2 ou do R2
 mvn spring-boot:run
 ```
 
