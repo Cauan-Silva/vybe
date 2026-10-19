@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone da notificação (o Android pinta de uma cor só): as ondas de som do logo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3.1,10h1.8v4h-1.8zM6.1,6h1.8v12h-1.8zM9.1,3h1.8v18h-1.8zM12.1,7h1.8v10h-1.8zM15.1,4h1.8v16h-1.8zM18.1,8h1.8v8h-1.8z" />
+</vector>

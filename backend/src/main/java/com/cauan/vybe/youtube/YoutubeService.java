@@ -81,6 +81,15 @@ public class YoutubeService {
         return importar(doCache("musica:" + limpo, VALIDADE_CACHE, () -> cliente.buscar(limpo)));
     }
 
+    /** Vídeos de música para um termo (mesmo cache da busca de músicas), sem gravar nada. */
+    public List<Video> videosDeMusica(String termo) {
+        String limpo = limpar(termo);
+        if (!disponivel() || limpo.isEmpty()) {
+            return List.of();
+        }
+        return doCache("musica:" + limpo, VALIDADE_CACHE, () -> cliente.buscar(limpo));
+    }
+
     /** Aba Vídeos: busca qualquer vídeo (sem o filtro de música) e não grava nada no banco. */
     public List<VideoResponse> buscarVideos(String termo) {
         String limpo = limpar(termo);

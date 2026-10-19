@@ -1,0 +1,56 @@
+# Blueprint do Render: cria a API do VYBE a partir deste repositório.
+# No Render: New > Blueprint > escolha o repositório. As variáveis com "sync: false"
+# são pedidas na criação (veja docs/NUVEM.md para onde pegar cada uma).
+services:
+  - type: web
+    name: vybe-api
+    runtime: docker
+    plan: free
+    # Perto do banco (Neon em AWS us-east-1): cada tela faz várias consultas.
+    region: virginia
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/youtube/status
+    autoDeploy: true
+    envVars:
+      # Banco (Neon)
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Segredo dos logins: o Render gera um aleatório
+      - key: JWT_SEGREDO
+        generateValue: true
+      # Arquivos enviados (Cloudflare R2)
+      - key: ARMAZENAMENTO_TIPO
+        value: s3
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_CHAVE
+        sync: false
+      - key: S3_SEGREDO
+        sync: false
+      - key: S3_URL_PUBLICA
+        sync: false
+      # Quem pode chamar a API: o app Android (https://localhost) e a versão web, se houver
+      - key: CORS_ORIGENS
+        value: https://localhost,http://localhost,capacitor://localhost
+      # Para onde o navegador volta depois do login do Spotify feito pelo app:
+      # https://<endereço-da-api>/api/spotify/app (mostra "pode voltar para o app")
+      - key: FRONTEND_URL
+        sync: false
+      # Integrações (opcionais)
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: JAMENDO_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        sync: false

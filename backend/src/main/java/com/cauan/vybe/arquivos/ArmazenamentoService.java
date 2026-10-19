@@ -3,8 +3,6 @@ package com.cauan.vybe.arquivos;
 import com.cauan.vybe.comum.Excecoes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -14,13 +12,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Guarda áudios e capas numa pasta do servidor (vybe.armazenamento.pasta).
+ * Guarda áudios e imagens enviados. Aqui ficam as regras (formatos aceitos, tamanho,
+ * nomes gerados, apagar só depois do banco confirmar); onde o arquivo mora de verdade
+ * fica com o Destino (pasta do computador ou Cloudflare R2).
  * Os nomes dos arquivos são gerados aqui (UUID), nunca vêm do usuário,
  * o que evita sobrescrever arquivos ou acessar pastas fora da raiz.
  */
@@ -38,6 +38,10 @@ public class ArmazenamentoService {
 
         Tipo(String pasta) {
             this.pasta = pasta;
+        }
+
+        public String pasta() {
+            return pasta;
         }
     }
 
@@ -58,17 +62,10 @@ public class ArmazenamentoService {
             "image/png", "png",
             "image/webp", "webp");
 
-    private final Path raiz;
+    private final Destino destino;
 
-    public ArmazenamentoService(@Value("${vybe.armazenamento.pasta}") String pasta) {
-        this.raiz = Path.of(pasta).toAbsolutePath().normalize();
-        try {
-            for (Tipo tipo : Tipo.values()) {
-                Files.createDirectories(raiz.resolve(tipo.pasta));
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Não foi possível criar a pasta de armazenamento " + raiz, e);
-        }
+    public ArmazenamentoService(Destino destino) {
+        this.destino = destino;
     }
 
     /** Valida o formato, salva e devolve o nome gerado. */
@@ -78,12 +75,12 @@ public class ArmazenamentoService {
         }
         String extensao = extensaoPermitida(arquivo.getContentType(), tipo);
         if (tipo == Tipo.CAPA && arquivo.getSize() > LIMITE_CAPA) {
-            throw new Excecoes.RegraNegocio("A capa pode ter no máximo 5 MB");
+            throw new Excecoes.RegraNegocio("A imagem pode ter no máximo 5 MB");
         }
 
         String nome = UUID.randomUUID() + "." + extensao;
         try (InputStream entrada = arquivo.getInputStream()) {
-            Files.copy(entrada, pasta(tipo).resolve(nome));
+            destino.gravar(chave(nome, tipo), entrada, arquivo.getSize(), arquivo.getContentType());
         } catch (IOException e) {
             throw new UncheckedIOException("Falha ao salvar o arquivo", e);
         }
@@ -91,11 +88,15 @@ public class ArmazenamentoService {
     }
 
     public Resource carregar(String nome, Tipo tipo) {
-        Path caminho = pasta(tipo).resolve(nome).normalize();
-        if (!caminho.startsWith(pasta(tipo)) || !Files.isReadable(caminho)) {
-            throw new Excecoes.NaoEncontrado("Arquivo não encontrado");
-        }
-        return new FileSystemResource(caminho);
+        return destino.ler(chave(nome, tipo));
+    }
+
+    /**
+     * Na versão hospedada (R2), o endereço para o navegador buscar o arquivo direto; os
+     * controllers respondem com um redirecionamento. No disco, vem vazio e a API entrega.
+     */
+    public Optional<URI> enderecoDireto(String nome, Tipo tipo) {
+        return destino.enderecoDireto(chave(nome, tipo));
     }
 
     public void apagar(String nome, Tipo tipo) {
@@ -103,11 +104,8 @@ public class ArmazenamentoService {
             return;
         }
         try {
-            Path caminho = pasta(tipo).resolve(nome).normalize();
-            if (caminho.startsWith(pasta(tipo))) {
-                Files.deleteIfExists(caminho);
-            }
-        } catch (IOException e) {
+            destino.apagar(chave(nome, tipo));
+        } catch (RuntimeException e) {
             log.warn("Não foi possível apagar {}: {}", nome, e.getMessage());
         }
     }
@@ -152,12 +150,16 @@ public class ArmazenamentoService {
         if (extensao == null) {
             throw new Excecoes.RegraNegocio(tipo == Tipo.AUDIO
                     ? "Formato de áudio não suportado. Use MP3, WAV, OGG, M4A, AAC ou FLAC."
-                    : "Use uma imagem JPG, PNG ou WebP para a capa.");
+                    : "Use uma imagem JPG, PNG ou WebP.");
         }
         return extensao;
     }
 
-    private Path pasta(Tipo tipo) {
-        return raiz.resolve(tipo.pasta);
+    /** Os nomes são sempre UUID + extensão; qualquer outra coisa nem chega ao destino. */
+    private static String chave(String nome, Tipo tipo) {
+        if (nome == null || !nome.matches("[A-Za-z0-9-]{1,80}\\.[a-z0-9]{2,5}")) {
+            throw new Excecoes.NaoEncontrado("Arquivo não encontrado");
+        }
+        return tipo.pasta + "/" + nome;
     }
 }

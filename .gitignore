@@ -30,3 +30,8 @@ Thumbs.db
 desktop/node_modules/
 desktop/build/
 desktop/dist/
+
+# App Android: a pasta android é gerada no GitHub Actions (npx cap add android)
+frontend/android/
+*.keystore
+*.jks

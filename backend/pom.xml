@@ -82,11 +82,80 @@
         </plugins>
     </build>
     <!--
+        Perfil "nuvem" (ligado por padrão): o armazenamento no Cloudflare R2 (S3) da versão
+        hospedada, com o código de src/nuvem/java. Fica de fora quando se usa outro perfil
+        (ex.: -Pdesktop), para não engordar o instalador do Windows com o SDK da AWS.
+    -->
+    <!--
         Perfil "desktop": a versão instalável (programa para Windows). Rode com "mvn -Pdesktop package".
         Acrescenta o PostgreSQL embutido (o banco vem dentro do programa) e o código de
         src/desktop/java. A versão web e o Docker não levam nada disso.
     -->
     <profiles>
+        <profile>
+            <id>nuvem</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>software.amazon.awssdk</groupId>
+                        <artifactId>bom</artifactId>
+                        <version>2.29.0</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            <dependencies>
+                <dependency>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>s3</artifactId>
+                    <exclusions>
+                        <!-- só o cliente HTTP síncrono é usado -->
+                        <exclusion>
+                            <groupId>software.amazon.awssdk</groupId>
+                            <artifactId>netty-nio-client</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>codigo-nuvem</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/nuvem/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>testes-nuvem</id>
+                                <phase>generate-test-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/nuvem-test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>desktop</id>
             <dependencyManagement>

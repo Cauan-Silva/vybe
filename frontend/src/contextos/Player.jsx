@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, urlArquivo } from '../services/api.js'
 import { criarMotorSpotify } from '../services/spotifyPlayer.js'
 import { criarMotorYoutube } from '../services/youtubePlayer.js'
+import { aoComandoDoTocador, atualizarTocador, pararTocador } from '../services/tocadorNativo.js'
+import { EH_APP } from '../config.js'
 import { criarRegistroDeTempo } from '../utils/contadorTempo.js'
 import { embaralhar } from '../utils/formato.js'
 import { lerModoLeve } from '../utils/modoLeve.js'
@@ -21,6 +23,9 @@ import { useAuth } from './Auth.jsx'
  *
  * O tempo de reprodução fica num contexto separado: ele muda várias vezes por
  * segundo e só a barra do player precisa dele, então as listas não re-renderizam à toa.
+ *
+ * No app Android, o Spotify não libera o player dele: as músicas do Spotify tocam pelo vídeo
+ * equivalente no YouTube (o servidor acha e guarda), e a notificação nativa mostra a música.
  *
  * Também ficam aqui: o timer para dormir, a contagem do tempo ouvido (para o "Seu mês no
  * VYBE"), os controles do Windows (teclas de mídia e painel de mídia) e o aviso ao programa
@@ -248,7 +253,14 @@ export function PlayerProvider({ children }) {
     ouvindoRef.current = registro
     if (tocandoRef.current) registro.contador.tocar()
 
-    const novo = musica.origem === 'SPOTIFY' ? 'spotify' : musica.origem === 'YOUTUBE' ? 'youtube' : 'audio'
+    // No app, as do Spotify tocam pelo YouTube (o player do Spotify não roda em apps de celular).
+    const pelaEquivalencia = EH_APP && musica.origem === 'SPOTIFY'
+    const novo =
+      musica.origem === 'SPOTIFY' && !pelaEquivalencia
+        ? 'spotify'
+        : musica.origem === 'YOUTUBE' || pelaEquivalencia
+          ? 'youtube'
+          : 'audio'
     const antigo = motorRef.current
     if (antigo === 'spotify' && novo !== 'spotify') spotify.parar()
     if (antigo === 'youtube' && novo !== 'youtube') youtube.parar()
@@ -264,6 +276,21 @@ export function PlayerProvider({ children }) {
       audio.pause()
       setTocando(false)
       spotify.tocar(musica.audioUrl, volumeAgora).catch(falhou('spotify'))
+    } else if (novo === 'youtube' && pelaEquivalencia) {
+      audio.pause()
+      setTocando(false)
+      if (!tokenRef.current) {
+        falhou('youtube')(new Error('Entre no VYBE para tocar as músicas do Spotify.'))
+      } else {
+        api
+          .youtubeEquivalente(musica.id, tokenRef.current)
+          .then((r) => {
+            // Se a pessoa já pulou para outra música enquanto buscava, deixa para lá.
+            if (ouvindoRef.current !== registro) return undefined
+            return youtube.tocar(r.videoId, mudoRef.current ? 0 : volumeRef.current)
+          })
+          .catch(falhou('youtube'))
+      }
     } else if (novo === 'youtube') {
       audio.pause()
       setTocando(false)
@@ -571,7 +598,7 @@ export function PlayerProvider({ children }) {
   useEffect(() => {
     tokenSpotifyRef.current = null
     const spotify = spotifyRef.current
-    if (!token) {
+    if (!token || EH_APP) {
       spotify.desligar()
       return undefined
     }
@@ -704,6 +731,16 @@ export function PlayerProvider({ children }) {
           // valores fora do esperado: o painel só fica sem a barra
         }
       }
+      // App Android: notificação com a música (e o app continua tocando com a tela apagada).
+      // "fundo": só o áudio comum (enviadas e Jamendo) pode continuar com o app em segundo plano.
+      if (atual) {
+        atualizarTocador({
+          titulo: atual.titulo,
+          artista: atual.artistaNome,
+          tocando,
+          fundo: motorRef.current === 'audio',
+        })
+      } else pararTocador()
       enviarAoPrograma({
         tipo: 'tocando',
         tocando: Boolean(atual) && tocando,
@@ -720,9 +757,37 @@ export function PlayerProvider({ children }) {
     return aoReabrirPonte(atualizar)
   }, [temSessao, atual, tocando, duracao])
 
+  // Botões da notificação do app Android.
+  const comandosRef = useRef({})
+  comandosRef.current = { alternarPlay, proxima, anterior }
+  useEffect(
+    () =>
+      aoComandoDoTocador((acao) => {
+        if (acao === 'alternar') comandosRef.current.alternarPlay()
+        else if (acao === 'proxima') comandosRef.current.proxima()
+        else if (acao === 'anterior') comandosRef.current.anterior()
+      }),
+    [],
+  )
+
+  // App Android: as regras do YouTube não permitem o player dele tocando em segundo plano.
+  // Saiu do app (ou apagou a tela) com música do YouTube tocando: pausa. Na volta, a pessoa
+  // aperta o play. Músicas enviadas e do Jamendo continuam tocando normalmente.
+  const pausarRef = useRef(pausar)
+  pausarRef.current = pausar
+  useEffect(() => {
+    if (!EH_APP) return undefined
+    const verificar = () => {
+      if (document.hidden && motorRef.current === 'youtube' && tocandoRef.current) pausarRef.current()
+    }
+    verificar() // a fila pode ter chegado numa música do YouTube com o app fechado
+    document.addEventListener('visibilitychange', verificar)
+    return () => document.removeEventListener('visibilitychange', verificar)
+  }, [tocando, atual])
+
   // Spotify e YouTube: áudio silencioso para o Windows tratar o VYBE como quem está tocando.
   useEffect(() => {
-    const precisa = tocando && motorRef.current !== 'audio'
+    const precisa = !EH_APP && tocando && motorRef.current !== 'audio'
     if (precisa) {
       if (!silencioRef.current) silencioRef.current = criarSilencio()
       silencioRef.current.play().catch(() => {})

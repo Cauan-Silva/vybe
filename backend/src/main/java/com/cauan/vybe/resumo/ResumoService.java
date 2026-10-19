@@ -154,6 +154,39 @@ public class ResumoService {
                 dias);
     }
 
+    static final int TAMANHO_PERFIL = 10;
+    /** Antes do VYBE existir: "sempre" começa aqui. */
+    private static final LocalDateTime COMECO = LocalDateTime.of(2000, 1, 1, 0, 0);
+
+    /** Músicas e artistas mais ouvidos do mês atual ou de sempre (página do perfil). */
+    @Transactional(readOnly = true)
+    public ResumoDtos.MaisOuvidas maisOuvidas(Long usuarioId, String periodo) {
+        boolean sempre = "sempre".equalsIgnoreCase(periodo);
+        LocalDateTime agora = LocalDateTime.now(clock);
+        LocalDateTime inicio = sempre ? COMECO : YearMonth.from(agora).atDay(1).atStartOfDay();
+        LocalDateTime fim = agora.plusMinutes(1);
+
+        var contagens = reproducoes.topMusicas(usuarioId, inicio, fim, PageRequest.of(0, MUSICAS_PARA_CAPAS));
+        Map<Long, Musica> porId = contagens.isEmpty() ? Map.of()
+                : musicas.findByIdIn(contagens.stream().map(ReproducaoRepository.Contagem::getId).toList())
+                .stream().collect(Collectors.toMap(Musica::getId, Function.identity()));
+        List<MusicaTop> top = contagens.stream()
+                .filter(c -> porId.containsKey(c.getId()))
+                .limit(TAMANHO_PERFIL)
+                .map(c -> new MusicaTop(MusicaResponse.de(porId.get(c.getId())), numero(c.getVezes()),
+                        numero(c.getSegundos())))
+                .toList();
+        Map<Long, String> capaDoArtista = new HashMap<>();
+        contagens.stream().map(c -> porId.get(c.getId())).filter(Objects::nonNull)
+                .forEach(m -> capaDoArtista.putIfAbsent(m.getArtista().getId(), m.getAlbum().capaUrl()));
+        List<ArtistaTop> artistas = reproducoes
+                .topArtistas(usuarioId, inicio, fim, PageRequest.of(0, TAMANHO_PERFIL)).stream()
+                .map(a -> new ArtistaTop(a.getId(), a.getNome(), capaDoArtista.get(a.getId()),
+                        numero(a.getVezes()), numero(a.getSegundos())))
+                .toList();
+        return new ResumoDtos.MaisOuvidas(sempre ? "sempre" : "mes", top, artistas);
+    }
+
     private static YearMonth lerMes(String mes, YearMonth atual) {
         if (mes == null || mes.isBlank()) {
             return atual;

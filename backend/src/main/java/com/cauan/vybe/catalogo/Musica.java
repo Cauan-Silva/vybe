@@ -58,6 +58,10 @@ public class Musica {
     @Column(name = "id_externo", length = 50)
     private String idExterno;
 
+    /** Vídeo do YouTube com a mesma música (só para as do Spotify, usado no app Android). */
+    @Column(name = "youtube_equivalente", length = 20)
+    private String youtubeEquivalente;
+
     /** JAMENDO: link da licença Creative Commons da faixa. */
     @Column(name = "licenca_url", length = 300)
     private String licencaUrl;
@@ -99,6 +103,8 @@ public class Musica {
     public String getUrlExterna() { return urlExterna; }
     public void setUrlExterna(String urlExterna) { this.urlExterna = urlExterna; }
     public String getIdExterno() { return idExterno; }
+    public String getYoutubeEquivalente() { return youtubeEquivalente; }
+    public void setYoutubeEquivalente(String youtubeEquivalente) { this.youtubeEquivalente = youtubeEquivalente; }
     public void setIdExterno(String idExterno) { this.idExterno = idExterno; }
     public String getLicencaUrl() { return licencaUrl; }
     public void setLicencaUrl(String licencaUrl) { this.licencaUrl = licencaUrl; }

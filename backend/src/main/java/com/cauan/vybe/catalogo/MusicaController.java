@@ -6,6 +6,7 @@ import com.cauan.vybe.arquivos.StreamingService;
 import com.cauan.vybe.catalogo.CatalogoDtos.MusicaResponse;
 import com.cauan.vybe.catalogo.EnvioService.DadosEnvio;
 import com.cauan.vybe.seguranca.UsuarioAtual;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
 
 @RestController
@@ -63,6 +65,12 @@ public class MusicaController {
         Musica musica = catalogo.obterMusica(id);
         if (musica.getOrigem() != Origem.UPLOAD) {
             return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(musica.getUrlExterna())).build();
+        }
+        // Versão hospedada: o áudio vem direto do R2, que entende os pedaços (Range) sozinho.
+        var direto = armazenamento.enderecoDireto(musica.getArquivo(), Tipo.AUDIO);
+        if (direto.isPresent()) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(direto.get())
+                    .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePrivate()).build();
         }
         MediaType tipo = musica.getContentType() == null
                 ? MediaType.APPLICATION_OCTET_STREAM

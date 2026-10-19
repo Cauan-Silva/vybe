@@ -9,6 +9,7 @@ import com.cauan.vybe.catalogo.CatalogoDtos.BuscaResponse;
 import com.cauan.vybe.comum.Excecoes;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +56,11 @@ public class NavegacaoController {
         Album album = catalogo.obterAlbum(id);
         if (album.getCapaArquivo() == null) {
             throw new Excecoes.NaoEncontrado("Este álbum não tem capa");
+        }
+        var direto = armazenamento.enderecoDireto(album.getCapaArquivo(), Tipo.CAPA);
+        if (direto.isPresent()) {
+            return ResponseEntity.status(HttpStatus.FOUND).location(direto.get())
+                    .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePrivate()).build();
         }
         Resource arquivo = armazenamento.carregar(album.getCapaArquivo(), Tipo.CAPA);
         MediaType tipo = MediaTypeFactory.getMediaType(arquivo).orElse(MediaType.IMAGE_JPEG);

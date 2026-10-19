@@ -29,8 +29,19 @@ vybe:
     segredo: ${JWT_SEGREDO:segredo-de-desenvolvimento-troque-em-producao-123}
     validade-horas: 168
   armazenamento:
-    # Pasta onde ficam os áudios e as capas enviados
+    # "disco" (pasta abaixo) ou "s3" (Cloudflare R2 ou outro compatível com S3, na versão hospedada)
+    tipo: ${ARMAZENAMENTO_TIPO:disco}
+    # Pasta onde ficam os áudios e as imagens enviados (tipo disco)
     pasta: ${ARMAZENAMENTO_PASTA:./dados}
+    s3:
+      # R2: https://<id-da-conta>.r2.cloudflarestorage.com
+      endpoint: ${S3_ENDPOINT:}
+      regiao: ${S3_REGIAO:auto}
+      bucket: ${S3_BUCKET:}
+      chave: ${S3_CHAVE:}
+      segredo: ${S3_SEGREDO:}
+      # Opcional: endereço público do bucket (ex.: https://pub-xxxx.r2.dev). Vazio = endereços assinados.
+      url-publica: ${S3_URL_PUBLICA:}
   jamendo:
     # Client ID do app em devportal.jamendo.com. Vazio = integração desligada.
     client-id: ${JAMENDO_CLIENT_ID:}

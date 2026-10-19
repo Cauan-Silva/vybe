@@ -56,6 +56,16 @@ export function AuthProvider({ children }) {
     [sessao, sair],
   )
 
+  /** Depois de editar o perfil: atualiza o nome guardado na sessão (o token continua o mesmo). */
+  const atualizarUsuario = useCallback((campos) => {
+    setSessao((atual) => {
+      if (!atual) return atual
+      const nova = { ...atual, usuario: { ...atual.usuario, ...campos } }
+      guardar(nova)
+      return nova
+    })
+  }, [])
+
   const valor = useMemo(
     () => ({
       sessao,
@@ -65,8 +75,9 @@ export function AuthProvider({ children }) {
       cadastrar,
       sair,
       chamar,
+      atualizarUsuario,
     }),
-    [sessao, entrar, cadastrar, sair, chamar],
+    [sessao, entrar, cadastrar, sair, chamar, atualizarUsuario],
   )
 
   return <AuthContexto.Provider value={valor}>{children}</AuthContexto.Provider>

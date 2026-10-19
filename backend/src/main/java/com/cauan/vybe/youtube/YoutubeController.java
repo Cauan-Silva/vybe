@@ -20,9 +20,17 @@ import java.util.List;
 public class YoutubeController {
 
     private final YoutubeService service;
+    private final EquivalenteService equivalentes;
 
-    public YoutubeController(YoutubeService service) {
+    public YoutubeController(YoutubeService service, EquivalenteService equivalentes) {
         this.service = service;
+        this.equivalentes = equivalentes;
+    }
+
+    /** App Android: o vídeo do YouTube com a mesma música de uma faixa do Spotify. */
+    @GetMapping("/equivalente/{musicaId}")
+    public EquivalenteService.Equivalente equivalente(@PathVariable Long musicaId) {
+        return equivalentes.equivalente(musicaId);
     }
 
     @GetMapping("/status")

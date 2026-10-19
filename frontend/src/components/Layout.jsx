@@ -3,12 +3,14 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contextos/Auth.jsx'
 import { useAvisos } from '../contextos/Avisos.jsx'
 import { useBiblioteca } from '../contextos/Biblioteca.jsx'
+import { usePerfil } from '../contextos/Perfil.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
 import { usePreferencias } from '../contextos/Preferencias.jsx'
 import { urlArquivo } from '../services/api.js'
 import { EH_PROGRAMA, NOME_APP } from '../config.js'
 import { useAtalhos } from '../utils/useAtalhos.js'
 import { enviarAoPrograma, useDoPrograma } from '../utils/programa.js'
+import Avatar from './Avatar.jsx'
 import Capa from './Capa.jsx'
 import Icone from './Icone.jsx'
 import PlayerBar from './PlayerBar.jsx'
@@ -71,6 +73,7 @@ function AvisoAtualizacao() {
 
 function Lateral() {
   const { sessao, usuario, sair } = useAuth()
+  const { perfil } = usePerfil()
   const { playlists, criarPlaylist } = useBiblioteca()
   const avisar = useAvisos()
   const navegar = useNavigate()
@@ -179,7 +182,10 @@ function Lateral() {
 
       {sessao && (
         <div className="lateral__conta">
-          <span>{usuario.nome}</span>
+          <NavLink to="/perfil" className="lateral__perfil" title="Ver o seu perfil">
+            <Avatar nome={usuario.nome} fotoUrl={perfil?.fotoUrl} tamanho={32} />
+            <span>{usuario.nome}</span>
+          </NavLink>
           <button type="button" className="link-botao" onClick={sair}>
             Sair
           </button>
@@ -187,6 +193,13 @@ function Lateral() {
       )}
     </nav>
   )
+}
+
+/** Foto do perfil na barra de baixo do celular (ou o ícone, sem login). */
+function AvatarNav() {
+  const { perfil } = usePerfil()
+  if (!perfil) return <Icone nome="conectar" />
+  return <Avatar nome={perfil.nome} fotoUrl={perfil.fotoUrl} tamanho={24} className="nav-movel__avatar" />
 }
 
 function NavMovel() {
@@ -207,8 +220,8 @@ function NavMovel() {
       <NavLink to="/biblioteca">
         <Icone nome="biblioteca" /> Biblioteca
       </NavLink>
-      <NavLink to="/enviar">
-        <Icone nome="enviar" /> Enviar
+      <NavLink to="/perfil">
+        <AvatarNav /> Perfil
       </NavLink>
     </nav>
   )

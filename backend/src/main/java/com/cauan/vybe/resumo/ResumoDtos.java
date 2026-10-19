@@ -48,4 +48,8 @@ public final class ResumoDtos {
                                  List<CanalTop> canais,
                                  List<Dia> dias) {
     }
+
+    /** Mais ouvidas do perfil: periodo é "mes" (mês atual) ou "sempre". */
+    public record MaisOuvidas(String periodo, List<MusicaTop> musicas, List<ArtistaTop> artistas) {
+    }
 }

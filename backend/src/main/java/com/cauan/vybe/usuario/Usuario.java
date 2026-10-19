@@ -30,6 +30,15 @@ public class Usuario {
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
 
+    @Column(name = "foto_arquivo", length = 100)
+    private String fotoArquivo;
+
+    @Column(name = "banner_arquivo", length = 100)
+    private String bannerArquivo;
+
+    @Column(length = 160)
+    private String bio;
+
     public Usuario() {
     }
 
@@ -46,4 +55,20 @@ public class Usuario {
     public String getEmail() { return email; }
     public String getSenhaHash() { return senhaHash; }
     public LocalDateTime getCriadoEm() { return criadoEm; }
+    public void setNome(String nome) { this.nome = nome; }
+    public String getFotoArquivo() { return fotoArquivo; }
+    public void setFotoArquivo(String fotoArquivo) { this.fotoArquivo = fotoArquivo; }
+    public String getBannerArquivo() { return bannerArquivo; }
+    public void setBannerArquivo(String bannerArquivo) { this.bannerArquivo = bannerArquivo; }
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    /** Endereço da foto (o "v" muda a cada troca, para o navegador não mostrar a antiga). */
+    public String fotoUrl() {
+        return fotoArquivo == null ? null : "/api/usuarios/" + id + "/foto?v=" + fotoArquivo.substring(0, Math.min(8, fotoArquivo.length()));
+    }
+
+    public String bannerUrl() {
+        return bannerArquivo == null ? null : "/api/usuarios/" + id + "/banner?v=" + bannerArquivo.substring(0, Math.min(8, bannerArquivo.length()));
+    }
 }

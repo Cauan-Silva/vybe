@@ -1,0 +1,15 @@
+{
+  "appId": "com.cauan.vybe",
+  "appName": "VYBE",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#05040d"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}

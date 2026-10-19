@@ -46,10 +46,12 @@ public class SegurancaConfig {
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/musicas/**", "/api/artistas/**",
-                                "/api/albuns/**", "/api/busca", "/api/jamendo/**", "/api/youtube/status").permitAll()
+                                "/api/albuns/**", "/api/busca", "/api/jamendo/**", "/api/youtube/status",
+                                "/api/usuarios/*/foto", "/api/usuarios/*/banner").permitAll()
                         // O Spotify redireciona o navegador para cá, sem o token do VYBE.
-                        // Quem é o usuário vem do parâmetro "state" (veja SpotifyEstados).
-                        .requestMatchers(HttpMethod.GET, "/api/spotify/callback").permitAll()
+                        // Quem é o usuário vem do parâmetro "state" (veja SpotifyEstados). A página
+                        // /app/spotify só avisa o resultado no navegador do celular (app Android).
+                        .requestMatchers(HttpMethod.GET, "/api/spotify/callback", "/api/spotify/app/spotify").permitAll()
                         // Programa: o Electron pede o desligamento com um token próprio (veja DesktopController).
                         .requestMatchers(HttpMethod.POST, "/api/desktop/desligar").permitAll()
                         // Fora de /api só há as telas do programa (HTML, JS, CSS e imagens); na versão web não há nada.

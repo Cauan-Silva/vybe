@@ -1,37 +1,141 @@
 # VYBE
 [![Baixar para Windows](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Windows&logo=windows&style=for-the-badge&color=19e0ff)](https://github.com/Cauan-Silva/vybe/releases/latest)
 
-App de streaming de música feito do zero: você envia suas faixas, a API entrega o áudio em pedaços como os serviços de streaming de verdade, e o player continua tocando enquanto você navega.
+[![Baixar para Windows](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Windows&logo=windows&style=for-the-badge&color=19e0ff)](https://github.com/Cauan-Silva/vybe/releases/latest)
+[![Baixar para Android](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Android&logo=android&style=for-the-badge&color=9a5cf5)](https://github.com/Cauan-Silva/vybe/releases/latest)
+
+App de música e vídeos feito do zero com Spring Boot e React: streaming por partes, um player que não para ao trocar de página, Spotify e YouTube integrados, um programa para Windows pensado para quem ouve e assiste enquanto joga e um app Android ligado a uma API hospedada.
+
+![Tela inicial do VYBE com o player tocando](docs/imagens/inicio.jpg)
 
 > Use só músicas suas ou com licença que permita compartilhar (Creative Commons, Free Music Archive, Biblioteca de Áudio do YouTube).
 
+## Baixar o programa (Windows)
+
+1. Baixe o **VYBE-Setup** na [última versão](https://github.com/Cauan-Silva/vybe/releases/latest) e execute. Java e PostgreSQL já vêm dentro, não precisa instalar nada.
+2. Se o Windows mostrar o aviso do SmartScreen (o instalador ainda não é assinado): **Mais informações → Executar assim mesmo**.
+3. Crie sua conta e, em **Configurações**, informe as chaves que quiser usar. Todas são opcionais: Spotify (Client ID), YouTube (chave de API), Jamendo (Client ID) e Discord (ID do aplicativo). O passo a passo está na própria tela.
+
+Depois disso, as versões novas chegam sozinhas. Detalhes do programa em [docs/PROGRAMA.md](docs/PROGRAMA.md).
+
+## App Android
+
+Baixe o **VYBE-x.y.z.apk** na [última versão](https://github.com/Cauan-Silva/vybe/releases/latest) pelo celular e abra o arquivo (o Android pede para permitir a instalação de apps baixados pelo navegador). O app usa a API hospedada online, então a conta é outra, separada da do programa para Windows, que guarda tudo no próprio computador.
+
+- **"Tocando agora" em tela cheia:** toque na música na barra do player para ver a capa grande, a barra de tempo, todos os controles, o timer e a fila. O "voltar" do celular fecha a tela.
+- **Tela apagada:** músicas enviadas e do Jamendo continuam tocando com a tela apagada, com notificação, controles na tela de bloqueio e nos botões do fone Bluetooth.
+- **Spotify pelo YouTube:** no celular não há o player do Spotify, então a API acha o mesmo vídeo no YouTube (título, artista e duração) e ele toca no app. Pelas regras do YouTube, músicas do YouTube só tocam com o app aberto: ao sair, elas pausam.
+
+Como o APK é gerado e assinado no GitHub Actions: [docs/APP.md](docs/APP.md). Como a API foi publicada (Render, Neon e Cloudflare R2): [docs/NUVEM.md](docs/NUVEM.md).
+
 ## O que tem aqui
 
-- **Streaming por partes (HTTP Range):** a música começa a tocar sem baixar o arquivo inteiro, e pular para qualquer ponto da barra busca só aquele trecho
-- **Player fixo** no rodapé que não para ao trocar de página, com aleatório, repetir (fila ou faixa), volume e um anel neon em volta da capa que gira e brilha enquanto toca
-- **Fila editável:** arrastar para reordenar (ou botões de subir e descer), tirar músicas, limpar e "Tocar a seguir"
-- **Timer para dormir:** pausa depois de 15 a 90 minutos ou no fim da música atual
-- **Teclas de mídia e painel de mídia do Windows** (capa, nome e barra de tempo) via Media Session API, também para Spotify e YouTube, mesmo com um jogo em primeiro plano
-- **Atalhos de teclado:** Espaço/K, setas (pular 5 s e volume), Shift+setas (próxima/anterior), M, S, R e Ctrl+K para buscar
-- **Seu mês no VYBE:** resumo estilo Wrapped com tempo ouvido e assistido, músicas, artistas, vídeos e canais mais ouvidos e o ritmo de cada dia (conta a partir de 30 s)
-- **Envio de músicas** com barra de progresso; a duração é lida no navegador e artista/álbum são criados automaticamente (música sem álbum vira single)
-- **Conexão com o Spotify (OAuth):** mostra seus artistas e músicas mais ouvidos e importa suas playlists
-- **Player do Spotify (Web Playback SDK):** com conta Premium, as músicas do Spotify tocam completas no mesmo player do VYBE, com fila, aleatório, repetir e volume
-- **Busca no Spotify:** qualquer música do catálogo do Spotify, não só as das suas playlists
-- **YouTube (API oficial):** busca vídeos de música e toca no player oficial do YouTube, numa janelinha visível no canto da tela
-- **Aparência:** 5 temas (Neon, Aurora, Oceano, Pôr do sol e Claro), texto maior, Luz dinâmica (o topo da página ganha as cores da capa que está tocando), Luz ambiente nos vídeos e modo leve para quem joga
-- **Programa para Windows:** instalador `.exe` com Java e PostgreSQL embutidos, ícone na bandeja, tela de Configurações para as chaves, **Discord Rich Presence** ("Ouvindo VYBE") e **atualização automática** pelas Releases do GitHub (veja [docs/PROGRAMA.md](docs/PROGRAMA.md))
-- **Aba Vídeos:** qualquer vídeo do YouTube (não só música), com em alta no Brasil por categoria, página do canal, visualizações e curtidas, "Assistir depois", histórico, continuar de onde parou, **janela flutuante** (Picture-in-Picture) que fica por cima de tudo e continua ao trocar de página, e uma aba com a sua cara: **Para você** (vídeos novos dos canais que você mais assiste), **Inscrições** (canais que você segue) e **Seus interesses** (até 3 temas, como "valorant")
-- **Contas** com cadastro e login (JWT), **curtidas**, **playlists** privadas e **tocadas recentemente**
-- **Busca** por título, artista e álbum, nas suas músicas e no catálogo do Jamendo
-- **Catálogo Creative Commons do Jamendo** integrado: as faixas aparecem na busca e em "Em alta no Jamendo", e funcionam como as enviadas (curtir, playlist, fila), com selo e link da licença
-- Layout responsivo, com navegação inferior no celular
+### 🎵 Música
+- **Streaming por partes (HTTP Range):** a música começa a tocar sem baixar o arquivo inteiro, e pular para qualquer ponto busca só aquele trecho
+- **Player fixo** que continua tocando ao trocar de página, com aleatório, repetir, volume e um anel neon na capa que gira enquanto toca
+- **Fila editável:** arrastar para reordenar, subir e descer, tirar, limpar e "Tocar a seguir"
+- **Timer para dormir:** pausa depois de 15 a 90 minutos ou no fim da música
+- **Spotify:** login (OAuth, com PKCE no programa), artistas e músicas mais ouvidos, importação de playlists, busca no catálogo inteiro e, com Premium, as músicas tocam completas no player do VYBE (Web Playback SDK)
+- **YouTube:** busca de músicas que tocam no player oficial, numa janelinha no canto da tela
+- **Catálogo Creative Commons do Jamendo** e **envio das suas músicas**, com capa, álbum e barra de progresso
+- **Curtidas, playlists e tocadas recentemente**, com cadastro e login (JWT)
+
+### 📺 Vídeos
+- **Qualquer vídeo do YouTube:** em alta no Brasil por categoria, busca, página do canal, "Assistir depois", histórico e continuar de onde parou
+- **Feito para você:** *Para você* (vídeos novos dos canais que você mais assiste), *Inscrições* (siga canais) e *Seus interesses* (até 3 temas, como "valorant")
+- **Janela flutuante** (Picture-in-Picture) que fica por cima de tudo e continua enquanto você navega pelo VYBE
+- **Luz ambiente** em volta do player, que acompanha as cores do vídeo em tempo real no programa
+
+### 🎮 Para quem joga
+- **Teclas de mídia e painel de mídia do Windows**, também nas músicas do Spotify e do YouTube, com o jogo em primeiro plano
+- **Discord Rich Presence:** "Ouvindo VYBE" no perfil, com capa e tempo da música
+- **Atalhos de teclado:** Espaço/K, setas (5 s e volume), Shift+setas, M, S, R e Ctrl+K
+- **Programa leve:** Java enxuto, banco com pouca memória, modo leve sem animações e quase nada rodando com a janela minimizada
+- **Atualização automática** pelas Releases do GitHub
+
+### ✨ Do seu jeito
+- **Perfil** com foto, banner, frase e as músicas e artistas mais ouvidos (do mês ou de sempre)
+- **Seu mês no VYBE:** resumo estilo Wrapped com tempo ouvido e assistido, rankings e o ritmo de cada dia
+- **Temas:** Neon, Aurora, Oceano, Pôr do sol, Claro e **Personalizado**, em que você arrasta o destaque, a cor secundária e o fundo numa roda de cores (do centro cinza, sem cor, até a borda mais viva)
+- **Luz dinâmica** (o topo da página ganha as cores da capa que está tocando), texto maior e layout responsivo, com navegação inferior no celular
+
+## Telas
+
+<table>
+  <tr>
+    <td><img src="docs/imagens/videos.jpg" alt="Aba Vídeos com os vídeos em alta no Brasil e as categorias" /></td>
+    <td><img src="docs/imagens/busca.jpg" alt="Busca mostrando músicas do Spotify" /></td>
+  </tr>
+  <tr>
+    <td align="center">Aba Vídeos</td>
+    <td align="center">Busca no Spotify e no YouTube</td>
+  </tr>
+  <tr>
+    <td><img src="docs/imagens/seu-mes.png" alt="Seu mês no VYBE: tempo total, números do mês e gráfico por dia" /></td>
+    <td><img src="docs/imagens/seu-mes-rankings.png" alt="Rankings do mês: músicas, artistas, vídeos e canais" /></td>
+  </tr>
+  <tr>
+    <td align="center">Seu mês no VYBE</td>
+    <td align="center">Rankings do mês</td>
+  </tr>
+  <tr>
+    <td><img src="docs/imagens/spotify.png" alt="Página do Spotify com os artistas e músicas mais ouvidos" /></td>
+    <td align="center"><img src="docs/imagens/enviar.png" alt="Tela de envio de música" width="60%" /></td>
+  </tr>
+  <tr>
+    <td align="center">Mais ouvidos no Spotify</td>
+    <td align="center">Enviar música</td>
+  </tr>
+</table>
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    subgraph Navegador["Telas (React 19 + Vite)"]
+        UI["Páginas e player"]
+        SDK["Player do Spotify<br/>(Web Playback SDK)"]
+        YTP["Player do YouTube<br/>(IFrame API)"]
+    end
+    subgraph Servidor["API (Spring Boot 3.5, Java 21)"]
+        API["REST + JWT"]
+        DB[("PostgreSQL<br/>(Flyway)")]
+        ARQ[("Áudios e imagens")]
+    end
+    UI -->|"HTTP + JWT"| API
+    API --> DB
+    API --> ARQ
+    API -->|"OAuth / PKCE"| SPOT["Spotify Web API"]
+    API -->|"Data API v3"| YT["YouTube"]
+    API --> JAM["Jamendo"]
+    SDK -.->|"áudio protegido"| SPOT
+    YTP -.->|"vídeo"| YT
+    subgraph Programa["Programa para Windows (Electron)"]
+        EL["Bandeja, atualizações<br/>e ponte com a página"]
+        EDGE["Janela do Edge<br/>(modo aplicativo)"]
+    end
+    EL -->|"liga a API e o banco embutidos"| API
+    EL -->|"abre"| EDGE
+    EDGE --- UI
+    EL -->|"canal local"| DISC["Discord"]
+    subgraph Celular["App Android (Capacitor)"]
+        WV["Telas no WebView"]
+        NAT["Plugin nativo Tocador<br/>(serviço de mídia)"]
+    end
+    WV -->|"HTTPS + JWT"| API
+    WV --- NAT
+    API -.->|"na nuvem"| R2[("Cloudflare R2")]
+```
+
+Online, a API roda num contêiner Docker no Render, o banco é um PostgreSQL do Neon e os áudios e imagens ficam no Cloudflare R2 (o navegador baixa direto de lá). No programa, a API e o PostgreSQL rodam no próprio computador. As telas abrem numa janela do Edge porque o player do Spotify exige a proteção de conteúdo Widevine, que o Electron comum não tem. O Electron conversa com essa janela por um canal privado (protocolo de depuração do Chromium, sem porta aberta) para a luz ambiente e para receber o que está tocando, que vai para o Discord.
 
 ## Tecnologias
 
 - **Back-end:** Java 21, Spring Boot 3.5 (Web, Data JPA, Validation, Security), JWT, Flyway, PostgreSQL
 - **Front-end:** React 19, React Router, Vite
-- **Testes:** JUnit 5, Mockito, AssertJ (103 testes, incluindo streaming, Jamendo, Spotify, YouTube e o resumo do mês)
+- **App Android:** Capacitor 8 e um plugin nativo em Java (serviço em primeiro plano e sessão de mídia), APK gerado e assinado no GitHub Actions
+- **Nuvem:** Docker, Render, Neon (PostgreSQL), Cloudflare R2 (AWS SDK para S3)
+- **Testes:** JUnit 5, Mockito, AssertJ (128 testes, incluindo streaming, armazenamento em disco e S3, Jamendo, Spotify, YouTube, o resumo do mês e a busca do equivalente no YouTube)
 
 ## Como rodar no seu computador
 
@@ -102,6 +206,7 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET | `/api/jamendo/busca?q=`, `/api/jamendo/populares` | público | Catálogo do Jamendo (importa as faixas) |
 | GET | `/api/spotify/status`, `/api/spotify/autorizar` | login | Situação da conexão / link de autorização |
 | GET | `/api/spotify/callback` | público | Retorno do login do Spotify |
+| GET | `/api/spotify/app/spotify` | público | Página "pode voltar para o app" depois do login feito pelo celular |
 | GET | `/api/spotify/playlists`, `/api/spotify/mais-ouvidos?periodo=` | login | Playlists e mais ouvidos |
 | POST | `/api/spotify/playlists/{id}/importar` | login | Importa uma playlist |
 | GET | `/api/spotify/token` | login | Token do player do Spotify no navegador |
@@ -110,6 +215,7 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET | `/api/youtube/busca?q=` | login | Busca vídeos de música no YouTube (viram músicas do catálogo) |
 | GET | `/api/youtube/videos?q=`, `/api/youtube/videos/em-alta?categoria=` | login | Aba Vídeos: qualquer vídeo e os em alta no Brasil (por categoria) |
 | GET | `/api/youtube/canais/{id}` | login | Página do canal: dados e vídeos recentes |
+| GET | `/api/youtube/equivalente/{musicaId}` | login | App Android: o vídeo do YouTube de uma música do Spotify |
 | GET/PUT/DELETE | `/api/eu/videos/assistir-depois[/{videoId}]` | login | Assistir depois |
 | GET/DELETE | `/api/eu/videos/historico` | login | Histórico de vídeos |
 | PUT | `/api/eu/videos/progresso` | login | Salva até onde o vídeo foi assistido |
@@ -120,6 +226,10 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET/PUT/DELETE | `/api/eu/videos/canais-seguidos[/{canalId}]` | login | Seguir canais |
 | GET/POST/DELETE | `/api/eu/videos/interesses[/{id}]` | login | Interesses (até 3) |
 | GET | `/api/eu/videos/interesses/{id}/videos` | login | Vídeos recentes de um interesse |
+| GET/PUT | `/api/eu/perfil` | login | Perfil: nome, frase, foto e banner |
+| POST/DELETE | `/api/eu/perfil/foto`, `/api/eu/perfil/banner` | login | Troca (multipart) ou remove a foto e o banner |
+| GET | `/api/eu/perfil/mais-ouvidas?periodo=mes\|sempre` | login | Músicas e artistas mais ouvidos |
+| GET | `/api/usuarios/{id}/foto`, `/api/usuarios/{id}/banner` | público | Imagens do perfil |
 | DELETE | `/api/spotify/conexao` | login | Desconecta o Spotify |
 | GET/PUT/DELETE | `/api/eu/curtidas[/{musicaId}]` | login | Curtidas |
 | POST/GET | `/api/eu/reproducoes/{id}`, `/api/eu/recentes` | login | Começou a tocar (devolve o id da reprodução) / tocadas recentemente |
@@ -127,13 +237,13 @@ O código está em [`StreamingService`](backend/src/main/java/com/cauan/vybe/arq
 | GET/POST/PUT/DELETE | `/api/playlists[/{id}]` | login (dono) | Playlists |
 | POST/DELETE | `/api/playlists/{id}/musicas[/{itemId}]` | login (dono) | Músicas da playlist |
 
-O áudio e as capas são públicos porque o elemento `<audio>` do navegador não envia o cabeçalho de login.
+O áudio, as capas e as imagens de perfil são públicos porque o elemento `<audio>` do navegador não envia o cabeçalho de login.
 
 ## Estrutura
 
 ```
 backend/src/main/java/com/cauan/vybe/
-├── arquivos/    # armazenamento em disco e streaming por partes
+├── arquivos/    # armazenamento (disco ou S3/R2) e streaming por partes
 ├── biblioteca/  # curtidas e tocadas recentemente
 ├── catalogo/    # músicas, artistas, álbuns, envio e busca
 ├── comum/       # erros e configuração
@@ -143,11 +253,15 @@ backend/src/main/java/com/cauan/vybe/
 ├── resumo/      # Seu mês no VYBE
 ├── seguranca/   # JWT e regras de acesso
 ├── spotify/     # OAuth do Spotify (com secret ou PKCE), mais ouvidos, importação e player
-├── usuario/     # cadastro e login
+├── usuario/     # cadastro, login e perfil (foto, banner e frase)
 └── youtube/     # busca, aba Vídeos, canais, Assistir depois e histórico
 
 backend/src/desktop/java/   # só no programa (mvn -Pdesktop): banco embutido, telas e desligamento
+backend/src/nuvem/java/     # só na versão hospedada (perfil nuvem): arquivos no Cloudflare R2
+backend/Dockerfile          # imagem da API para o Render (render.yaml na raiz)
 desktop/                    # programa Electron: main.js, Discord, luz ambiente, instalador e build.ps1
+frontend/mobile/            # app Android: plugin nativo Tocador, ícones e o script que prepara o projeto
+.github/workflows/android.yml # gera, assina e anexa o APK a cada release
 
 frontend/src/
 ├── components/  # player, fila, listas, menus, cartões
@@ -166,7 +280,9 @@ frontend/src/
 - [x] **Programa para Windows:** Electron + API com PostgreSQL embutido, login do Spotify com PKCE
 - [x] **Para quem joga:** janela flutuante, teclas de mídia, Discord, atalhos, timer e atualização automática
 - [x] **Seu mês no VYBE:** resumo mensal do que foi ouvido e assistido
-- [ ] Guardar os arquivos num serviço de armazenamento (S3/R2) para publicar online, já que o disco de serviços gratuitos é apagado a cada deploy
+- [x] **Vídeos personalizados:** Para você, Inscrições e Seus interesses
+- [x] **Perfil e tema personalizado:** foto, banner, mais ouvidas e cores escolhidas pela pessoa
+- [x] **Online e no celular:** API hospedada (Render + Neon + Cloudflare R2) e app Android com música de tela apagada
 
 ## Como funciona a integração com o Jamendo
 
@@ -194,4 +310,11 @@ Variáveis da API: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` e, se mudar o en
 4. **Aba Vídeos:** busca sem o filtro de música e mostra os vídeos em alta no Brasil, também por categoria (`videos.list` com `chart=mostPopular`, que custa só 1 unidade e fica 1 hora em cache). Esses vídeos não viram músicas do catálogo: tocam no player oficial do YouTube em tamanho grande, na própria página, e a música do VYBE pausa quando um vídeo começa.
 5. **Canal, Assistir depois, histórico e progresso:** a página do canal usa `channels.list` e a playlist de uploads (`playlistItems.list`), cerca de 3 unidades, com cache de 1 hora. Visualizações e curtidas vêm na mesma chamada de detalhes, sem custo extra. "Assistir depois", histórico e a posição de cada vídeo ficam numa tabela do VYBE (`video_usuario`), com uma cópia dos dados do vídeo, então as listas abrem sem gastar cota. O player salva a posição a cada 10 segundos, ao pausar e ao fechar; faltando menos de 10 segundos, o vídeo conta como terminado e recomeça do zero.
 
+6. **Vídeos personalizados:** o *Para você* pega os 5 canais mais assistidos nos últimos 30 dias (da tabela `visualizacao_video`, que conta a partir de 30 segundos) e mistura os vídeos novos deles, um de cada canal por vez, sem repetir o que a pessoa já viu. As *Inscrições* juntam os vídeos mais recentes dos canais seguidos (`canal_seguido`). Os dois reaproveitam o cache da página do canal (cerca de 3 unidades por canal a cada hora). Cada um dos até 3 *interesses* (`interesse_video`) é uma busca com `publishedAfter` dos últimos 30 dias: custa 100 unidades e fica 6 horas em cache.
+7. **Janela flutuante:** usa a Document Picture-in-Picture do Edge/Chrome. O player não pode ficar direto nela (é uma página em branco, e o YouTube recusa players sem endereço de origem, o "Erro 153"), então a janelinha carrega `/pip-video.html`, uma página do próprio VYBE com o player. Por isso a API libera quadros só da mesma origem (`X-Frame-Options: SAMEORIGIN`).
+
 Variável da API: `YOUTUBE_API_KEY` (chave criada em console.cloud.google.com, com a YouTube Data API v3 ativada).
+
+## Licença
+
+[MIT](LICENSE). As músicas, capas e vídeos continuam sendo de quem os criou: o VYBE só toca o que a pessoa envia, o que é Creative Commons ou o que os players oficiais do Spotify e do YouTube permitem.

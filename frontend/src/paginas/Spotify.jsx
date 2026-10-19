@@ -7,7 +7,7 @@ import { useAuth } from '../contextos/Auth.jsx'
 import { useAvisos } from '../contextos/Avisos.jsx'
 import { useBiblioteca } from '../contextos/Biblioteca.jsx'
 import { usePlayer } from '../contextos/Player.jsx'
-import { EH_PROGRAMA } from '../config.js'
+import { EH_APP, EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { plural } from '../utils/formato.js'
 import { useCarregar } from '../utils/useCarregar.js'
@@ -30,6 +30,18 @@ export default function Spotify() {
   useEffect(() => {
     if (podeTocar) prepararSpotify()
   }, [podeTocar, prepararSpotify])
+
+  // App Android: o login do Spotify abre no navegador do celular. Ao voltar para o app,
+  // confere de novo se a conta já foi conectada.
+  const recarregarStatus = status.recarregar
+  useEffect(() => {
+    if (!EH_APP) return undefined
+    const aoVoltar = () => {
+      if (!document.hidden) recarregarStatus()
+    }
+    document.addEventListener('visibilitychange', aoVoltar)
+    return () => document.removeEventListener('visibilitychange', aoVoltar)
+  }, [recarregarStatus])
 
   // Volta do Spotify: mostra o resultado uma vez e limpa a URL.
   useEffect(() => {
@@ -102,7 +114,8 @@ function useConectar() {
 function Conectar() {
   const { indo, conectar } = useConectar()
   // O Spotify só devolve o login para 127.0.0.1; em "localhost" a sessão do VYBE não seria a mesma.
-  const emLocalhost = window.location.hostname === 'localhost'
+  // (No app Android o endereço interno é sempre "localhost", mas o login abre no navegador.)
+  const emLocalhost = !EH_APP && window.location.hostname === 'localhost'
 
   return (
     <div className="painel-info">
@@ -111,7 +124,11 @@ function Conectar() {
       <ul>
         <li>ver seus artistas e músicas mais ouvidos;</li>
         <li>importar suas playlists para o VYBE;</li>
-        <li>com conta Premium, ouvir as músicas do Spotify completas aqui no player do VYBE.</li>
+        {EH_APP ? (
+          <li>ouvir as músicas das suas playlists aqui no app (elas tocam pela versão do YouTube).</li>
+        ) : (
+          <li>com conta Premium, ouvir as músicas do Spotify completas aqui no player do VYBE.</li>
+        )}
       </ul>
       <p className="texto-apoio-claro">
         O VYBE lê suas playlists e seus mais ouvidos e controla o que toca no player. Nada é alterado nas
@@ -125,10 +142,17 @@ function Conectar() {
           entre de novo. O Spotify não aceita “localhost”.
         </p>
       ) : (
-        <button type="button" className="botao" onClick={conectar} disabled={indo}>
-          <Icone nome="conectar" tamanho={18} />
-          {indo ? 'Abrindo o Spotify…' : 'Conectar com o Spotify'}
-        </button>
+        <>
+          <button type="button" className="botao" onClick={conectar} disabled={indo}>
+            <Icone nome="conectar" tamanho={18} />
+            {indo ? 'Abrindo o Spotify…' : 'Conectar com o Spotify'}
+          </button>
+          {EH_APP && (
+            <p className="texto-apoio-claro">
+              O login abre no navegador do celular. Depois de autorizar, é só voltar para o app.
+            </p>
+          )}
+        </>
       )}
     </div>
   )

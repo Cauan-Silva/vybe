@@ -15,6 +15,7 @@ import Videos from './paginas/Videos.jsx'
 import CanalVideos from './paginas/CanalVideos.jsx'
 import Configuracoes from './paginas/Configuracoes.jsx'
 import SeuMes from './paginas/SeuMes.jsx'
+import Perfil from './paginas/Perfil.jsx'
 import NaoEncontrado from './paginas/NaoEncontrado.jsx'
 
 export default function App() {
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="videos/canal/:id" element={<CanalVideos />} />
         <Route path="configuracoes" element={<Configuracoes />} />
         <Route path="seu-mes" element={<SeuMes />} />
+        <Route path="perfil" element={<Perfil />} />
         <Route path="*" element={<NaoEncontrado />} />
       </Route>
     </Routes>

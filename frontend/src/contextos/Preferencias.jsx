@@ -16,7 +16,82 @@ export const TEMAS = [
   { id: 'oceano', nome: 'Oceano', cores: ['#030712', '#4cc3ff', '#2f5bf2'] },
   { id: 'por-do-sol', nome: 'Pôr do sol', cores: ['#0d0507', '#ffb347', '#ff4f81'] },
   { id: 'claro', nome: 'Claro', cores: ['#eef0f8', '#0874b0', '#6b2fe0'] },
+  { id: 'personalizado', nome: 'Personalizado', cores: null }, // cores vêm de "personalizado" abaixo
 ]
+
+/**
+ * Tema personalizado: cada cor é um ponto na roda de cores. "destaque", "secundaria" e "fundo"
+ * são a matiz (0 a 360, o ângulo na roda); "satDestaque", "satSecundaria" e "saturacao" (a do
+ * fundo) vão de 0 (centro da roda: cinza, sem cor) a 100 (borda: a cor mais viva).
+ */
+export const PERSONALIZADO_PADRAO = {
+  destaque: 190,
+  satDestaque: 95,
+  secundaria: 265,
+  satSecundaria: 80,
+  fundo: 250,
+  saturacao: 45,
+}
+
+/** Lê um tema personalizado salvo; os de antes da roda (sem as saturações das cores) ganham as padrão. */
+export function lerPersonalizado(p) {
+  if (!p || typeof p !== 'object') return null
+  const ok = (v, max) => Number.isFinite(v) && v >= 0 && v <= max
+  if (!ok(p.destaque, 360) || !ok(p.secundaria, 360) || !ok(p.fundo, 360) || !ok(p.saturacao, 100)) return null
+  return {
+    destaque: p.destaque,
+    satDestaque: ok(p.satDestaque, 100) ? p.satDestaque : PERSONALIZADO_PADRAO.satDestaque,
+    secundaria: p.secundaria,
+    satSecundaria: ok(p.satSecundaria, 100) ? p.satSecundaria : PERSONALIZADO_PADRAO.satSecundaria,
+    fundo: p.fundo,
+    saturacao: p.saturacao,
+  }
+}
+
+const hsl = (h, s, l, a) => `hsl(${Math.round(h)} ${Math.round(s)}% ${l}%${a !== undefined ? ` / ${a}` : ''})`
+
+/**
+ * Variáveis do tema personalizado, no mesmo formato dos temas prontos (styles.css).
+ * O destaque fica sempre claro (com texto escuro por cima) e o fundo sempre escuro,
+ * então qualquer combinação de matizes continua legível.
+ */
+export function coresPersonalizadas({
+  destaque,
+  satDestaque = PERSONALIZADO_PADRAO.satDestaque,
+  secundaria,
+  satSecundaria = PERSONALIZADO_PADRAO.satSecundaria,
+  fundo,
+  saturacao,
+}) {
+  const limite = (v) => Math.max(0, Math.min(100, v))
+  const sf = limite(saturacao) / 100
+  const sd = limite(satDestaque)
+  const ss = limite(satSecundaria)
+  return {
+    '--fundo': hsl(fundo, 60 * sf, 4),
+    '--painel': hsl(fundo, 50 * sf, 8),
+    '--painel-2': hsl(fundo, 45 * sf, 11.5),
+    '--painel-3': hsl(fundo, 42 * sf, 17),
+    '--linha': hsl(fundo, 38 * sf, 24),
+    '--topo': hsl(fundo, 70 * sf, 13),
+    '--texto': hsl(fundo, 40 * sf, 95),
+    '--texto-suave': hsl(fundo, 30 * sf + 8, 72),
+    '--texto-fraco': hsl(fundo, 20 * sf + 6, 50),
+    // No centro da roda (saturação 0) as cores viram cinzas: o destaque é um cinza claro.
+    '--rotulo': hsl(destaque, sd, sd < 15 ? 68 : 60),
+    '--rotulo-escuro': hsl(destaque, sd * 0.9, 8),
+    '--violeta': hsl(secundaria, ss, ss < 15 ? 62 : 56),
+    '--brilho': hsl(destaque, sd, 60, 0.45),
+    '--grafico-musica': hsl(destaque, sd * 0.8, sd < 15 ? 52 : 42),
+    '--grafico-video': hsl(secundaria, ss * 0.88, sd < 15 && ss < 15 ? 76 : 60),
+  }
+}
+
+/** As cores do cartão de prévia do tema personalizado. */
+export function amostraPersonalizada(p) {
+  const c = coresPersonalizadas(p)
+  return [c['--fundo'], c['--rotulo'], c['--violeta']]
+}
 
 const PADRAO = {
   tema: 'neon',
@@ -26,6 +101,7 @@ const PADRAO = {
   intensidadeAmbiente: 'media', // 'suave' | 'media' | 'forte'
   tamanhoAmbiente: 'medio', // 'pequeno' | 'medio' | 'grande'
   ambienteTempoReal: true, // só tem efeito no programa
+  personalizado: PERSONALIZADO_PADRAO,
   discordAtivo: false, // programa: mostrar no Discord o que está tocando
   discordClientId: '', // ID do aplicativo criado em discord.com/developers
 }
@@ -55,6 +131,8 @@ export function lerPreferencias() {
   for (const [chave, valores] of Object.entries(VALIDOS)) {
     if (valores.includes(salvas[chave])) resultado[chave] = salvas[chave]
   }
+  const personalizado = lerPersonalizado(salvas.personalizado)
+  if (personalizado) resultado.personalizado = personalizado
   if (typeof salvas.discordClientId === 'string' && ID_DISCORD.test(salvas.discordClientId)) {
     resultado.discordClientId = salvas.discordClientId
   }
@@ -67,6 +145,12 @@ export function aplicarPreferencias(p) {
   raiz.dataset.tema = p.tema
   raiz.classList.toggle('texto-grande', p.texto === 'grande')
   raiz.style.colorScheme = p.tema === 'claro' ? 'light' : 'dark'
+  // Tema personalizado: as variáveis vão direto no <html>; nos outros temas, saem.
+  const cores = coresPersonalizadas(p.personalizado ?? PERSONALIZADO_PADRAO)
+  for (const [nome, valor] of Object.entries(cores)) {
+    if (p.tema === 'personalizado') raiz.style.setProperty(nome, valor)
+    else raiz.style.removeProperty(nome)
+  }
 }
 
 const PreferenciasContexto = createContext(null)

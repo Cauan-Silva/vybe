@@ -139,4 +139,16 @@ class ResumoServiceTest {
         assertThat(ResumoService.indiceDoMaior(new long[]{0, 0, 0})).isNull();
         assertThat(ResumoService.indiceDoMaior(new long[]{0, 5, 5, 1})).isEqualTo(1);
     }
+
+    @Test
+    void maisOuvidasDoMesComecaNoDia1EDeSempreDesdeOComeco() {
+        service.maisOuvidas(1L, "mes");
+        verify(reproducoes).topArtistas(eq(1L), eq(LocalDateTime.of(2026, 10, 1, 0, 0)), any(),
+                eq(org.springframework.data.domain.PageRequest.of(0, ResumoService.TAMANHO_PERFIL)));
+
+        var sempre = service.maisOuvidas(1L, "SEMPRE");
+        assertThat(sempre.periodo()).isEqualTo("sempre");
+        verify(reproducoes).topArtistas(eq(1L), eq(LocalDateTime.of(2000, 1, 1, 0, 0)), any(), any());
+        assertThat(service.maisOuvidas(1L, "qualquer").periodo()).isEqualTo("mes");
+    }
 }

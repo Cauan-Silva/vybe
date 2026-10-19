@@ -1,0 +1,21 @@
+# Versão hospedada (Docker no Render, banco no Neon, arquivos no Cloudflare R2).
+# As chaves e senhas vêm das variáveis de ambiente do serviço: veja docs/NUVEM.md.
+spring:
+  datasource:
+    hikari:
+      # O plano grátis do Neon aceita poucas conexões, e o servidor tem 512 MB
+      maximum-pool-size: 4
+      minimum-idle: 1
+      # O Neon "dorme" quando fica parado: a primeira conexão pode demorar
+      connection-timeout: 30000
+
+server:
+  # Atrás do proxy do Render (https), para os endereços gerados saírem com https
+  forward-headers-strategy: framework
+  tomcat:
+    threads:
+      max: 50
+
+vybe:
+  armazenamento:
+    tipo: ${ARMAZENAMENTO_TIPO:s3}

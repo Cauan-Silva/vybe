@@ -18,6 +18,7 @@ const ROTULO_REPETIR = {
 export default function PlayerBar() {
   const p = usePlayer()
   const [filaAberta, setFilaAberta] = useState(false)
+  const [telaAberta, setTelaAberta] = useState(false)
 
   if (!p.atual) {
     return (
@@ -31,6 +32,14 @@ export default function PlayerBar() {
 
   return (
     <footer className="player" aria-label="Player">
+      {/* Celular: tocar na música abre a tela "Tocando agora" com todos os controles */}
+      <button
+        type="button"
+        className="player__expandir"
+        aria-label={`Abrir o player: ${atual.titulo}`}
+        onClick={() => setTelaAberta(true)}
+      />
+      {telaAberta && <TelaTocando onFechar={() => setTelaAberta(false)} />}
       <div className="player__faixa">
         <div className={`anel ${p.tocando ? 'anel--tocando' : ''}`}>
           <Capa src={atual.capaUrl} titulo={atual.albumTitulo} redonda className="anel__capa" />
@@ -136,6 +145,114 @@ export default function PlayerBar() {
 
       {filaAberta && <FilaPainel onFechar={() => setFilaAberta(false)} />}
     </footer>
+  )
+}
+
+/**
+ * Celular: o player em tela cheia, com capa grande, barra de tempo, todos os controles,
+ * timer e a fila. O botão "voltar" do Android também fecha.
+ */
+function TelaTocando({ onFechar }) {
+  const p = usePlayer()
+  const [verFila, setVerFila] = useState(false)
+  const fecharRef = useRef(onFechar)
+  fecharRef.current = onFechar
+
+  useEffect(() => {
+    // Uma entrada no histórico: o "voltar" do celular fecha a tela em vez de sair da página.
+    window.history.pushState({ ...(window.history.state ?? {}), vybeTocando: true }, '')
+    const aoVoltar = () => fecharRef.current()
+    const aoTeclar = (e) => e.key === 'Escape' && window.history.back()
+    window.addEventListener('popstate', aoVoltar)
+    document.addEventListener('keydown', aoTeclar)
+    document.body.classList.add('sem-rolagem')
+    return () => {
+      window.removeEventListener('popstate', aoVoltar)
+      document.removeEventListener('keydown', aoTeclar)
+      document.body.classList.remove('sem-rolagem')
+    }
+  }, [])
+
+  const fechar = () => window.history.back() // dispara o popstate acima
+  const { atual } = p
+  if (!atual) return null
+
+  return (
+    <div className="tela-tocando" role="dialog" aria-modal="true" aria-label="Tocando agora">
+      <div className="tela-tocando__fundo" aria-hidden="true">
+        <Capa src={atual.capaUrl} titulo={atual.albumTitulo} />
+      </div>
+      <div className="tela-tocando__topo">
+        <button type="button" className="botao-icone" aria-label="Fechar o player" onClick={fechar}>
+          <Icone nome="descer" />
+        </button>
+        <span>Tocando agora</span>
+        <BotaoCurtir musica={atual} />
+      </div>
+
+      <div className="tela-tocando__capa">
+        <Capa src={atual.capaUrl} titulo={atual.albumTitulo} />
+      </div>
+
+      <div className="tela-tocando__textos">
+        <Link className="tela-tocando__titulo" to={`/album/${atual.albumId}`} onClick={fechar}>
+          {atual.titulo}
+        </Link>
+        <span className="player__linha-artista">
+          <SeloLicenca musica={atual} />
+          <Link className="player__artista" to={`/artista/${atual.artistaId}`} onClick={fechar}>
+            {atual.artistaNome}
+          </Link>
+        </span>
+        {p.erro && <p className="player__erro">{p.erro}</p>}
+      </div>
+
+      <BarraProgresso />
+
+      <div className="tela-tocando__controles">
+        <button
+          type="button"
+          className={`botao-icone botao-modo ${p.aleatorio ? 'botao-modo--ativo' : ''}`}
+          aria-pressed={p.aleatorio}
+          aria-label="Aleatório"
+          onClick={p.alternarAleatorio}
+        >
+          <Icone nome="aleatorio" tamanho={24} />
+        </button>
+        <button type="button" className="botao-icone" aria-label="Anterior" onClick={p.anterior}>
+          <Icone nome="anterior" tamanho={30} />
+        </button>
+        <button type="button" className="botao-play botao-play--grande" aria-label={p.tocando ? 'Pausar' : 'Tocar'} onClick={p.alternarPlay}>
+          <Icone nome={p.tocando ? 'pause' : 'play'} tamanho={32} />
+        </button>
+        <button type="button" className="botao-icone" aria-label="Próxima" disabled={!p.temProxima} onClick={() => p.proxima()}>
+          <Icone nome="proxima" tamanho={30} />
+        </button>
+        <button
+          type="button"
+          className={`botao-icone botao-modo ${p.repetir !== 'nao' ? 'botao-modo--ativo' : ''}`}
+          aria-label={ROTULO_REPETIR[p.repetir]}
+          onClick={p.alternarRepetir}
+        >
+          <Icone nome="repetir" tamanho={24} />
+          {p.repetir === 'uma' && <span className="botao-modo__um">1</span>}
+        </button>
+      </div>
+
+      <div className="tela-tocando__extras">
+        <BotaoTimer />
+        <button
+          type="button"
+          className={`botao botao--contorno botao--pequeno ${verFila ? 'botao--marcado' : ''}`}
+          aria-expanded={verFila}
+          onClick={() => setVerFila((v) => !v)}
+        >
+          <Icone nome="fila" tamanho={16} /> {verFila ? 'Esconder a fila' : 'Ver a fila'}
+        </button>
+      </div>
+
+      {verFila && <FilaPainel onFechar={() => setVerFila(false)} />}
+    </div>
   )
 }
 

@@ -6,7 +6,15 @@ import { useAvisos } from '../contextos/Avisos.jsx'
 import { EH_PROGRAMA } from '../config.js'
 import { api } from '../services/api.js'
 import { useCarregar } from '../utils/useCarregar.js'
-import { ID_DISCORD, TEMAS, usePreferencias } from '../contextos/Preferencias.jsx'
+import {
+  amostraPersonalizada,
+  coresPersonalizadas,
+  ID_DISCORD,
+  PERSONALIZADO_PADRAO,
+  TEMAS,
+  usePreferencias,
+} from '../contextos/Preferencias.jsx'
+import RodaDeCores from '../components/RodaDeCores.jsx'
 import { enviarAoPrograma, useDoPrograma } from '../utils/programa.js'
 import { ATALHOS } from '../utils/useAtalhos.js'
 
@@ -28,14 +36,16 @@ function Aparencia() {
               onClick={() => p.alterar('tema', t.id)}
             >
               <span className="tema__amostra" aria-hidden="true">
-                {t.cores.map((cor) => (
-                  <span key={cor} style={{ background: cor }} />
+                {(t.cores ?? amostraPersonalizada(p.personalizado)).map((cor, i) => (
+                  <span key={i} style={{ background: cor }} />
                 ))}
               </span>
               {t.nome}
             </button>
           ))}
         </div>
+
+        {p.tema === 'personalizado' && <EditorDeCores />}
 
         <div className="config__linha">
           <span>
@@ -150,6 +160,90 @@ function Aparencia() {
         </button>
       </section>
     </>
+  )
+}
+
+/** As três cores do tema personalizado, cada uma um marcador na roda. */
+const ALVOS = [
+  { id: 'destaque', sat: 'satDestaque', letra: 'D', nome: 'Cor de destaque', dica: 'Botões, item ativo, barra de progresso', amostra: '--rotulo' },
+  { id: 'secundaria', sat: 'satSecundaria', letra: 'S', nome: 'Cor secundária', dica: 'Brilhos, degradês e detalhes', amostra: '--violeta' },
+  { id: 'fundo', sat: 'saturacao', letra: 'F', nome: 'Tom do fundo', dica: 'A cor puxada pelo fundo e pelos painéis', amostra: '--painel-3' },
+]
+
+/** Tema personalizado: a roda muda o VYBE na hora, como uma prévia ao vivo. */
+function EditorDeCores() {
+  const p = usePreferencias()
+  const c = p.personalizado
+  const [ativo, setAtivo] = useState('destaque')
+  const cores = coresPersonalizadas(c)
+  const alvo = ALVOS.find((a) => a.id === ativo)
+
+  const mudar = (id, h, s) => {
+    const a = ALVOS.find((x) => x.id === id)
+    p.alterar('personalizado', { ...c, [a.id]: h, [a.sat]: s })
+  }
+  const aleatorio = () => {
+    const destaque = Math.floor(Math.random() * 360)
+    p.alterar('personalizado', {
+      destaque,
+      satDestaque: 60 + Math.floor(Math.random() * 41),
+      secundaria: (destaque + 60 + Math.floor(Math.random() * 180)) % 360,
+      satSecundaria: 50 + Math.floor(Math.random() * 51),
+      fundo: Math.floor(Math.random() * 360),
+      saturacao: 15 + Math.floor(Math.random() * 60),
+    })
+  }
+  const cinzas = () => p.alterar('personalizado', { ...c, satDestaque: 0, satSecundaria: 0, saturacao: 0 })
+
+  return (
+    <div className="editor-cores">
+      <RodaDeCores
+        rotulo="Roda de cores do tema personalizado"
+        ativo={ativo}
+        onAtivar={setAtivo}
+        onMudar={mudar}
+        pontos={ALVOS.map((a) => ({ id: a.id, letra: a.letra, nome: a.nome, h: c[a.id], s: c[a.sat] }))}
+      />
+      <div className="editor-cores__lado">
+        <div className="editor-cores__alvos" role="group" aria-label="Qual cor mexer na roda">
+          {ALVOS.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              className="editor-cores__alvo"
+              aria-pressed={ativo === a.id}
+              onClick={() => setAtivo(a.id)}
+            >
+              <span className="editor-cores__amostra" style={{ background: cores[a.amostra] }} aria-hidden="true">
+                {a.letra}
+              </span>
+              <span className="editor-cores__rotulo">
+                <strong>{a.nome}</strong>
+                <span className="texto-apoio-claro">{a.dica}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="editor-cores__valores" aria-live="polite">
+          <strong>{alvo.nome}</strong>: matiz {c[alvo.id]}° · saturação {c[alvo.sat]}%
+          {c[alvo.sat] < 10 && <span className="editor-cores__cinza"> (cinza)</span>}
+        </p>
+        <p className="texto-apoio-claro">
+          Arraste o marcador: girando muda a cor; para o centro, ela perde a cor até virar cinza (acromática).
+        </p>
+        <div className="editor-cores__acoes">
+          <button type="button" className="botao botao--contorno botao--pequeno" onClick={aleatorio}>
+            Cores aleatórias
+          </button>
+          <button type="button" className="botao botao--contorno botao--pequeno" onClick={cinzas}>
+            Tons de cinza
+          </button>
+          <button type="button" className="link-botao" onClick={() => p.alterar('personalizado', PERSONALIZADO_PADRAO)}>
+            Voltar ao padrão
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

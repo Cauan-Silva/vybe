@@ -88,6 +88,12 @@ export const api = {
   limparHistoricoVideos: (token) => requisicao('/eu/videos/historico', { metodo: 'DELETE', token }),
   progressoVideo: (video, posicaoSegundos, token) =>
     requisicao('/eu/videos/progresso', { metodo: 'PUT', corpo: { video, posicaoSegundos }, token }),
+  // Perfil
+  perfil: (token) => requisicao('/eu/perfil', { token }),
+  atualizarPerfil: (dados, token) => requisicao('/eu/perfil', { metodo: 'PUT', corpo: dados, token }),
+  removerImagemPerfil: (tipo, token) => requisicao(`/eu/perfil/${tipo}`, { metodo: 'DELETE', token }),
+  maisOuvidas: (periodo, token) => requisicao(`/eu/perfil/mais-ouvidas?periodo=${periodo}`, { token }),
+
   // Aba Vídeos personalizada
   videosParaVoce: (token) => requisicao('/eu/videos/para-voce', { token }),
   videosInscricoes: (token) => requisicao('/eu/videos/inscricoes', { token }),
@@ -130,6 +136,8 @@ export const api = {
   configuracoes: (token) => requisicao('/configuracoes', { token }),
   salvarConfiguracoes: (dados, token) => requisicao('/configuracoes', { metodo: 'PUT', corpo: dados, token }),
 
+  /** App Android: vídeo do YouTube com a mesma música de uma faixa do Spotify. */
+  youtubeEquivalente: (id, token) => requisicao(`/youtube/equivalente/${id}`, { token }),
   spotifyBusca: (termo, token) => requisicao(`/spotify/busca?q=${encodeURIComponent(termo)}`, { token }),
 
   // Playlists (com login)
@@ -143,6 +151,24 @@ export const api = {
     requisicao(`/playlists/${id}/musicas`, { metodo: 'POST', corpo: { musicaId }, token }),
   removerDaPlaylist: (id, itemId, token) =>
     requisicao(`/playlists/${id}/musicas/${itemId}`, { metodo: 'DELETE', token }),
+}
+
+/** Foto ou banner do perfil (tipo = "foto" | "banner"): envio multipart com o arquivo. */
+export async function enviarImagemPerfil(tipo, arquivo, token) {
+  const corpo = new FormData()
+  corpo.append('arquivo', arquivo)
+  let resposta
+  try {
+    resposta = await fetch(`${BASE}/eu/perfil/${tipo}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: corpo,
+    })
+  } catch {
+    throw new ErroApi('Sem conexão com o servidor. Confira se a API está rodando.', 0)
+  }
+  if (!resposta.ok) throw await erroDaResposta(resposta)
+  return resposta.json()
 }
 
 /**
