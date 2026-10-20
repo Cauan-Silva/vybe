@@ -13,7 +13,7 @@
 
     <groupId>com.cauan</groupId>
     <artifactId>vybe-api</artifactId>
-    <version>0.1.0</version>
+    <version>0.3.0</version>
     <name>vybe-api</name>
     <description>API de streaming de música</description>
 

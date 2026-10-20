@@ -1,5 +1,4 @@
 # VYBE
-[![Baixar para Windows](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Windows&logo=windows&style=for-the-badge&color=19e0ff)](https://github.com/Cauan-Silva/vybe/releases/latest)
 
 [![Baixar para Windows](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Windows&logo=windows&style=for-the-badge&color=19e0ff)](https://github.com/Cauan-Silva/vybe/releases/latest)
 [![Baixar para Android](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Android&logo=android&style=for-the-badge&color=9a5cf5)](https://github.com/Cauan-Silva/vybe/releases/latest)

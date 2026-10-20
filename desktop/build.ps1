@@ -32,7 +32,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar a API' }
 } finally { Pop-Location }
 $jar = Get-ChildItem (Join-Path $raiz 'backend\target') -Filter 'vybe-api-*.jar' |
-    Where-Object { $_.Name -notlike '*.original' } | Select-Object -First 1
+    Where-Object { $_.Name -notlike '*.original' } |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1 # o mais novo, se houver de outra versão
 Copy-Item $jar.FullName (Join-Path $saida 'vybe-api.jar')
 
 Passo '2/5 Telas (React), falando com a API no mesmo endereço'
