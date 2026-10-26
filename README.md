@@ -2,6 +2,7 @@
 
 [![Baixar para Windows](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Windows&logo=windows&style=for-the-badge&color=19e0ff)](https://github.com/Cauan-Silva/vybe/releases/latest)
 [![Baixar para Android](https://img.shields.io/github/v/release/Cauan-Silva/vybe?label=Baixar%20para%20Android&logo=android&style=for-the-badge&color=9a5cf5)](https://github.com/Cauan-Silva/vybe/releases/latest)
+[![CI](https://github.com/Cauan-Silva/vybe/actions/workflows/ci.yml/badge.svg)](https://github.com/Cauan-Silva/vybe/actions/workflows/ci.yml)
 
 App de música e vídeos feito do zero com Spring Boot e React: streaming por partes, um player que não para ao trocar de página, Spotify e YouTube integrados, um programa para Windows pensado para quem ouve e assiste enquanto joga e um app Android ligado a uma API hospedada.
 

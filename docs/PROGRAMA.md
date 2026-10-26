@@ -85,11 +85,14 @@ Só funciona no programa instalado (com `npm start` aparece como indisponível).
 
 Para publicar uma versão nova:
 
-1. Aumente `version` em `desktop/package.json` (ex.: `0.2.0` → `0.3.0`).
-2. Gere o instalador com `build.ps1`.
-3. Crie a Release `v0.3.0` no GitHub e anexe **os três arquivos** de `desktop\dist`:
-   `VYBE-Setup-0.3.0.exe`, `VYBE-Setup-0.3.0.exe.blockmap` e `latest.yml`.
-   O `latest.yml` é o que os programas instalados leem para saber que há versão nova.
+1. Aumente `version` em `desktop/package.json` (ex.: `0.3.0` → `0.4.0`) e faça o push.
+2. No GitHub, crie a Release com a tag `v0.4.0` (a mesma versão, com `v` na frente) e publique.
+3. Pronto: o GitHub Actions gera o instalador no Windows (`.github/workflows/programa.yml`) e anexa ao
+   release os três arquivos: `VYBE-Setup-0.4.0.exe`, `VYBE-Setup-0.4.0.exe.blockmap` e `latest.yml`
+   (o que os programas instalados leem para saber que há versão nova). O workflow do Android anexa o APK.
+   Se a tag não bater com a versão do `package.json`, o workflow para com um aviso.
+
+Para gerar o instalador no seu computador, sem publicar, veja [Gerar o instalador](#gerar-o-instalador).
 
 A 0.1.0 não tinha atualização automática: quem está nela instala a 0.2.0 à mão uma vez, e daí em diante
 as versões chegam sozinhas.

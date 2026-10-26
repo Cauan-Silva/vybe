@@ -1,0 +1,75 @@
+name: Programa para Windows
+
+# Gera o instalador do VYBE para Windows no GitHub, sem precisar do JDK, do Maven e do
+# Node no seu computador. Ao publicar um release (tag vX.Y.Z), o instalador, o .blockmap
+# e o latest.yml (que os programas instalados leem para se atualizar sozinhos) são
+# anexados a ele, junto com o APK que o workflow do Android anexa.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write # para anexar o instalador ao release
+
+concurrency:
+  group: programa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  instalador:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Conferir a versão
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $versao = (Get-Content desktop/package.json -Raw | ConvertFrom-Json).version
+          $tag = $env:TAG -replace '^v', ''
+          if ($tag -ne $versao) {
+            Write-Output "::error::A tag do release ($env:TAG) não bate com a versão em desktop/package.json ($versao). Aumente a versão no package.json antes de publicar."
+            exit 1
+          }
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            desktop/package-lock.json
+
+      - name: Gerar o instalador
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false' # sem certificado de assinatura
+        run: powershell -ExecutionPolicy Bypass -File desktop\build.ps1
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: VYBE-instalador-windows
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.blockmap
+            desktop/dist/latest.yml
+          if-no-files-found: error
+
+      - name: Anexar ao release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $arquivos = @(Get-ChildItem desktop/dist -File | Where-Object { $_.Name -like '*.exe' -or $_.Name -like '*.blockmap' -or $_.Name -eq 'latest.yml' } | ForEach-Object { $_.FullName })
+          gh release upload "${{ github.event.release.tag_name }}" @arquivos --clobber
