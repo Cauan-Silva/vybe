@@ -41,6 +41,20 @@ public final class Excecoes {
         }
     }
 
+    /** 429: tentativas demais (login ou cadastro). Guarda quanto tempo falta para liberar. */
+    public static class MuitasTentativas extends RuntimeException {
+        private final java.time.Duration espera;
+
+        public MuitasTentativas(String mensagem, java.time.Duration espera) {
+            super(mensagem);
+            this.espera = espera;
+        }
+
+        public java.time.Duration getEspera() {
+            return espera;
+        }
+    }
+
     /** 401: e-mail ou senha incorretos. Não diz qual dos dois, de propósito. */
     public static class CredenciaisInvalidas extends RuntimeException {
         public CredenciaisInvalidas() {

@@ -7,6 +7,7 @@
       "request": "launch",
       "mainClass": "com.cauan.vybe.VybeApplication",
       "projectName": "vybe-api",
+      "args": "--spring.profiles.active=dev",
       "cwd": "${workspaceFolder}/backend"
     }
   ]

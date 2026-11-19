@@ -25,7 +25,8 @@ vybe:
   # Para onde o navegador volta depois de conectar o Spotify
   frontend-url: ${FRONTEND_URL:http://127.0.0.1:5173}
   jwt:
-    # Em produção, defina JWT_SEGREDO com pelo menos 32 caracteres aleatórios.
+    # Em produção, defina JWT_SEGREDO com pelo menos 32 bytes aleatórios (ex.: openssl rand -hex 48).
+    # O valor abaixo é público: a API só o aceita nos perfis "dev" e "test" (veja SegredoJwt).
     segredo: ${JWT_SEGREDO:segredo-de-desenvolvimento-troque-em-producao-123}
     validade-horas: 168
   armazenamento:
