@@ -25,7 +25,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -67,8 +66,6 @@ class AuthControllerTest {
     private RelogioAjustavel relogio;
     @Autowired
     private JwtEncoder jwtEncoder;
-    @Autowired
-    private Clock clock;
 
     @MockitoBean
     private AuthService authService;
@@ -177,7 +174,8 @@ class AuthControllerTest {
     }
 
     private String token(long usuarioId) {
-        Instant agora = clock.instant();
+        // Hora real: quem valida o token (JwtDecoder) usa o relógio do sistema, não o do teste.
+        Instant agora = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("vybe-api")
                 .issuedAt(agora)
