@@ -65,7 +65,7 @@ O plano gratuito tem 10 GB guardados e download grátis até 3 vezes o que estiv
 | `JAMENDO_CLIENT_ID` | opcional, de [devportal.jamendo.com](https://devportal.jamendo.com) |
 | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI` | opcionais (passo 5) |
 
-`JWT_SEGREDO` é gerado pelo próprio Render, e `CORS_ORIGENS` já vem liberando o app Android (`https://localhost`).
+`JWT_SEGREDO` é gerado pelo próprio Render (se ela faltar, a API se recusa a subir em vez de usar o segredo público de desenvolvimento), e `CORS_ORIGENS` já vem liberando o app Android (`https://localhost`).
 
 4. O primeiro deploy compila a API dentro do Docker (alguns minutos). Para conferir, abra `https://vybe-api.onrender.com/api/youtube/status`: deve aparecer um JSON.
 5. O endereço da API **com `/api` no fim** é o que o app usa: guarde para a variável `VYBE_API_URL` do GitHub ([docs/APP.md](APP.md)).
@@ -91,10 +91,11 @@ No celular, "Conectar com o Spotify" abre o login no navegador. Depois de autori
 
 ```powershell
 cd backend
-$env:SPRING_PROFILES_ACTIVE = "nuvem"
 $env:DB_URL = "jdbc:postgresql://localhost:5432/vybe"
+# Fora do perfil dev, o segredo de desenvolvimento é recusado (ex.: openssl rand -hex 48)
+$env:JWT_SEGREDO = "<valor aleatório com pelo menos 32 bytes>"
 # ... e as variáveis S3_* do B2 ou do R2
-mvn spring-boot:run
+mvn spring-boot:run "-Dspring-boot.run.profiles=nuvem"
 ```
 
 Sem `ARMAZENAMENTO_TIPO=s3` (fora do perfil `nuvem`), a API continua gravando no disco, como sempre.

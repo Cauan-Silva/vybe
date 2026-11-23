@@ -1,9 +1,13 @@
 package com.cauan.vybe.seguranca;
 
+import com.cauan.vybe.usuario.UsuarioRepository;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +26,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * Público: ouvir e navegar pelo catálogo (o elemento &lt;audio&gt; do navegador não envia
@@ -66,13 +71,11 @@ public class SegurancaConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /** Não deixa a API subir com o segredo público do application.yml (veja SegredoJwt). */
     @Bean
-    public SecretKey chaveJwt(@Value("${vybe.jwt.segredo}") String segredo) {
-        byte[] bytes = segredo.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length < 32) {
-            throw new IllegalStateException("vybe.jwt.segredo (JWT_SEGREDO) precisa ter pelo menos 32 caracteres");
-        }
-        return new SecretKeySpec(bytes, "HmacSHA256");
+    public SecretKey chaveJwt(@Value("${vybe.jwt.segredo}") String segredo, Environment ambiente) {
+        SegredoJwt.validar(segredo, Arrays.asList(ambiente.getActiveProfiles()));
+        return new SecretKeySpec(segredo.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     }
 
     @Bean
@@ -80,8 +83,12 @@ public class SegurancaConfig {
         return new NimbusJwtEncoder(new ImmutableSecret<>(chaveJwt));
     }
 
+    /** Além da assinatura e da validade, confere no banco se a conta do token ainda existe. */
     @Bean
-    public JwtDecoder jwtDecoder(SecretKey chaveJwt) {
-        return NimbusJwtDecoder.withSecretKey(chaveJwt).macAlgorithm(MacAlgorithm.HS256).build();
+    public JwtDecoder jwtDecoder(SecretKey chaveJwt, UsuarioRepository usuarios) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chaveJwt).macAlgorithm(MacAlgorithm.HS256).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefault(), new ValidadorUsuarioDoToken(usuarios)));
+        return decoder;
     }
 }

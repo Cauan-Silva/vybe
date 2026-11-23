@@ -1,7 +1,9 @@
 package com.cauan.vybe.comum;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -42,6 +44,14 @@ public class TratadorDeErros {
     @ExceptionHandler(Excecoes.CredenciaisInvalidas.class)
     public ProblemDetail credenciais(Excecoes.CredenciaisInvalidas e) {
         return problema(HttpStatus.UNAUTHORIZED, "Login inválido", e.getMessage());
+    }
+
+    @ExceptionHandler(Excecoes.MuitasTentativas.class)
+    public ResponseEntity<ProblemDetail> muitasTentativas(Excecoes.MuitasTentativas e) {
+        long segundos = Math.max(1, (e.getEspera().toMillis() + 999) / 1000);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(segundos))
+                .body(problema(HttpStatus.TOO_MANY_REQUESTS, "Muitas tentativas", e.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

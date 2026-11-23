@@ -135,7 +135,7 @@ Online, a API roda num contêiner Docker no Render, o banco é um PostgreSQL do 
 - **Front-end:** React 19, React Router, Vite
 - **App Android:** Capacitor 8 e um plugin nativo em Java (serviço em primeiro plano e sessão de mídia), APK gerado e assinado no GitHub Actions
 - **Nuvem:** Docker, Render, Neon (PostgreSQL), Cloudflare R2 (AWS SDK para S3)
-- **Testes:** JUnit 5, Mockito, AssertJ (128 testes, incluindo streaming, armazenamento em disco e S3, Jamendo, Spotify, YouTube, o resumo do mês e a busca do equivalente no YouTube)
+- **Testes:** JUnit 5, Mockito, AssertJ (154 testes, incluindo o limite de tentativas de login e cadastro (MockMvc), streaming, armazenamento em disco e S3, Jamendo, Spotify, YouTube, o resumo do mês e a busca do equivalente no YouTube)
 
 ## Como rodar no seu computador
 
@@ -157,6 +157,8 @@ $psql = (Get-ChildItem "C:\Program Files\PostgreSQL\*\bin\psql.exe" | Select-Obj
 cd backend
 mvn spring-boot:run
 ```
+
+O `spring-boot:run` liga o perfil `dev`, que aceita o segredo de login de desenvolvimento do `application.yml`. Fora dos perfis `dev` e `test` (por exemplo, com `java -jar` ou no Docker), a API não sobe sem a variável `JWT_SEGREDO` com pelo menos 32 bytes aleatórios (ex.: `openssl rand -hex 48`).
 
 Para ligar o catálogo do Jamendo, crie um app gratuito em devportal.jamendo.com e defina o Client ID antes de rodar (sem ele, o resto funciona normalmente):
 
